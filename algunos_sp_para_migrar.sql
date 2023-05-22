@@ -82,3 +82,34 @@ BEGIN
 			M.ENVIO_MENSAJERIA_LOCALIDAD IS NOT NULL
 END
 GO
+
+/*ESTE NO SE BIEN COMO HACERLO*/
+INSERT INTO DB_OWNERS.DIRECCION(
+	calle, 
+	numero,
+	id_localidad
+	)
+	SELECT DISTINCT
+		m.DIRECCION_USUARIO_DIRECCION,-- Como separo la direccion en calle y numero, si son todas distintas?
+		m.DIRECCION_USUARIO_DIRECCION, -- aca vendria el nro
+		L.id_localidad
+	from gd_esquema.Maestra m
+	JOIN DB_OWNERS.LOCALIDAD L ON L.id_localidad = m.DIRECCION_USUARIO_LOCALIDAD
+	where DIRECCION_USUARIO_DIRECCION is NOT NULL
+	UNION
+	SELECT DISTINCT
+		m.LOCAL_DIRECCION,-- Como separo la direccion en calle y numero, si son todas distintas?
+		m.LOCAL_DIRECCION, -- aca vendria el nro
+		L.id_localidad
+	from gd_esquema.Maestra m
+	JOIN DB_OWNERS.LOCALIDAD L ON L.id_localidad = m.LOCAL_LOCALIDAD
+	where LOCAL_DIRECCION is NOT NULL
+	UNION
+	--no hay direcciones en operador.. las paso igual?
+	SELECT DISTINCT
+		m.OPERADOR_RECLAMO_DIRECCION,-- Como separo la direccion en calle y numero, si son todas distintas?
+		m.OPERADOR_RECLAMO_DIRECCION, -- aca vendria el nro
+		L.id_localidad
+	from gd_esquema.Maestra m
+	JOIN DB_OWNERS.LOCALIDAD L ON L.id_localidad =  --no tiene localidad asociada a esa direccion tampoco, asi que esto nolo podria hacer
+	where LOCAL_DIRECCION is NOT NULL
