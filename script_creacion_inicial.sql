@@ -44,24 +44,23 @@ GO
 
 CREATE TABLE DB_OWNERS.DIRECCION
 (
-	id_direccion INT PRIMARY KEY,
-	calle NVARCHAR(255) NOT NULL, 
-	numero INT NOT NULL,
-	id_localidad INT NOT NULL--FK
+	id_direccion INT IDENTITY (1,1) PRIMARY KEY,
+	calle_numero NVARCHAR(255) NOT NULL, 
+	id_localidad INT--FK
 )
 GO
 
 CREATE TABLE DB_OWNERS.LOCALIDAD
 (
-	id_localidad INT PRIMARY KEY,
+	id_localidad INT IDENTITY (1,1) PRIMARY KEY,
 	nombre NVARCHAR(255) NOT NULL, 
-	id_provincia INT NOT NULL--FK
+	id_provincia INT NOT NULL --FK
 )
 GO
 
 CREATE TABLE DB_OWNERS.PROVINCIA
 (
-	id_provincia INT PRIMARY KEY,
+	id_provincia INT IDENTITY (1,1) PRIMARY KEY,
 	nombre NVARCHAR(255) NOT NULL
 )
 GO
@@ -221,32 +220,32 @@ GO
 
 CREATE TABLE DB_OWNERS.RECLAMO
 (
-	nro_reclamo INT PRIMARY KEY,
-	id_usuario INT NOT NULL,
-	id_pedido INT NOT NULL,
-	id_tipo_reclamo INT NOT NULL,
-	id_estado INT NOT NULL,
-	id_operador INT NOT NULL,
-	id_solucion INT NOT NULL,
-	id_cupon_reclamo INT NOT NULL,
+	nro_reclamo INT IDENTITY (1,1) PRIMARY KEY,
+	id_usuario INT NOT NULL, --FK
+	id_pedido INT NOT NULL, --FK
+	id_tipo_reclamo INT NOT NULL,  --FK
+	id_estado INT NOT NULL,   ---FK
+	id_operador INT NOT NULL,  --FK
+	id_solucion INT NOT NULL,  --FK 
+	id_cupon_reclamo INT NOT NULL,  --FK
 	fecha DATETIME2(3) NOT NULL,
 	descripcion NVARCHAR(255) NOT NULL,
-	calificacion INT,
+	calificacion DECIMAL(18,0),
 	fecha_solucion DATETIME2(3)
 )
 GO
 
 CREATE TABLE DB_OWNERS.TIPO_RECLAMO
 (
-	id_tipo_reclamo INT PRIMARY KEY,
+	id_tipo_reclamo INT IDENTITY (1,1) PRIMARY KEY,
 	descripcion NVARCHAR(50) NOT NULL,
 )
 GO
 
 CREATE TABLE DB_OWNERS.ESTADO_RECLAMO
 (
-	id_estado_reclamo INT PRIMARY KEY,
-	descripcion NVARCHAR(50) NOT NULL
+	id_estado_reclamo INT IDENTITY (1,1) PRIMARY KEY,
+	descripcion NVARCHAR(50)
 )
 GO
 
@@ -265,16 +264,16 @@ GO
 
 CREATE TABLE DB_OWNERS.SOLUCION
 (
-	id_solucion INT PRIMARY KEY,
-	descripcion NVARCHAR(50) NOT NULL
+	id_solucion INT IDENTITY (1,1) PRIMARY KEY,
+	descripcion NVARCHAR(255) NOT NULL
 )
 GO
 
 CREATE TABLE DB_OWNERS.CUPON_RECLAMO
 (
-	id_cupon_reclamo INT PRIMARY KEY
-	id_reclamo INT NOT NULL,
-	id_nro_cupon INT NOT NULL,
+	id_cupon_reclamo INT IDENTITY (1,1) PRIMARY KEY,
+	id_reclamo INT NOT NULL, --FK
+	id_nro_cupon INT NOT NULL --FK
 )
 GO
 
@@ -351,7 +350,7 @@ GO
 
 CREATE PROCEDURE DB_OWNERS.migrar_usuario AS
 BEGIN
-	INSERT INTO DB_OWNERS.Usuario
+	INSERT INTO DB_OWNERS.USUARIO
 	SELECT DISTINCT 
 		m.USUARIO_NOMBRE,
 		m.USUARIO_APELLIDO, 
@@ -361,6 +360,15 @@ BEGIN
 		m.USUARIO_MAIL,
 		m.USUARIO_FECHA_NAC
 	FROM gd_esquema.Maestra m
+END
+GO
+
+CREATE PROCEDURE DB_OWNERS.migrar_estado_reclamo AS
+BEGIN
+	INSERT INTO DB_OWNERS.ESTADO_RECLAMO
+	SELECT DISTINCT 
+		RECLAMO_ESTADO
+	FROM gd_esquema.Maestra
 END
 GO
 
@@ -376,7 +384,8 @@ GO
 --------------------------------------
 
 BEGIN TRANSACTION 
-	EXECUTE DB_OWNERS.migrar_usuario
+	--EXECUTE DB_OWNERS.migrar_usuario
+	
 	
 COMMIT TRANSACTION
 
