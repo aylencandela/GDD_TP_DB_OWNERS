@@ -44,15 +44,19 @@ GO
 
 CREATE TABLE DB_OWNERS.DIRECCION
 (
+
 	id_direccion INT IDENTITY (1,1) PRIMARY KEY,
 	calle_numero NVARCHAR(255) NOT NULL, 
 	id_localidad INT--FK
+
 )
 GO
 
 CREATE TABLE DB_OWNERS.LOCALIDAD
 (
+
 	id_localidad INT IDENTITY (1,1) PRIMARY KEY,
+
 	nombre NVARCHAR(255) NOT NULL, 
 	id_provincia INT NOT NULL --FK
 )
@@ -60,7 +64,9 @@ GO
 
 CREATE TABLE DB_OWNERS.PROVINCIA
 (
+
 	id_provincia INT IDENTITY (1,1) PRIMARY KEY,
+
 	nombre NVARCHAR(255) NOT NULL
 )
 GO
@@ -68,24 +74,25 @@ GO
 CREATE TABLE DB_OWNERS.DIRECCION_POR_USUARIO
 (
 	id_usuario INT,  ---FK
-	id_direccion INT  ---FK
-	PRIMARY KEY(id_usuario, id_direccion)
+	id_direccion INT,  ---FK
+	PRIMARY KEY(id_usuario, id_direccion),
+	nombre NVARCHAR(50) NOT NULL
 )
 GO
 
 
 CREATE TABLE DB_OWNERS.TIPO_CUPON
 (
-	id_tipo_cupon INT PRIMARY KEY,
+	id_tipo_cupon INT IDENTITY(1,1) PRIMARY KEY,
 	descripcion NVARCHAR(255) NOT NULL
 )
 GO
 
 CREATE TABLE DB_OWNERS.CUPON
 (
-	id_nro_cupon INT PRIMARY KEY,
+	id_nro_cupon INT IDENTITY(1,1) PRIMARY KEY,
 	id_usuario INT NOT NULL, ---FK
-	id_pedido INT NOT NULL, ---FK
+	nro_cupon int not null,
 	monto DECIMAL(18,2) NOT NULL,
 	fecha_alta DATETIME2(3) NOT NULL,
 	fecha_vencimiento DATETIME2(3) NOT NULL,
@@ -95,7 +102,7 @@ GO
 
 CREATE TABLE DB_OWNERS.MEDIO_DE_PAGO
 (
-	id_medio_de_pago INT PRIMARY KEY,
+	id_medio_de_pago INT IDENTITY(1,1) PRIMARY KEY,
 	medio NVARCHAR(50) NOT NULL,
 	id_datos_tarjeta INT --FK
 )
@@ -103,14 +110,14 @@ GO
 
 CREATE TABLE DB_OWNERS.PAGO
 (
-	id_pago INT PRIMARY KEY,
+	id_pago INT IDENTITY(1,1) PRIMARY KEY,
 	id_medio_de_pago INT NOT NULL --FK
 )
 GO
 
 CREATE TABLE DB_OWNERS.LOCAL_
 (
-	id_local INT PRIMARY KEY,
+	id_local INT IDENTITY(1,1) PRIMARY KEY,
 	nombre NVARCHAR(255) NOT NULL,
 	descripcion NVARCHAR(255) NOT NULL,
 	id_direccion INT NOT NULL, --FK
@@ -120,7 +127,7 @@ GO
 
 CREATE TABLE DB_OWNERS.CATEGORIA_LOCAL
 (
-	id_categoria_local INT PRIMARY KEY,
+	id_categoria_local INT IDENTITY(1,1) PRIMARY KEY,
 	id_tipo_local INT NOT NULL, --FK
 	id_categoria INT NOT NULL --FK
 )
@@ -128,20 +135,20 @@ GO
 
 CREATE TABLE DB_OWNERS.TIPO_LOCAL
 (
-	id_tipo_local INT PRIMARY KEY,
+	id_tipo_local INT IDENTITY(1,1) PRIMARY KEY,
 	descripcion NVARCHAR(255) NOT NULL
 )
 GO
 
 CREATE TABLE DB_OWNERS.CATEGORIA
 (
-	id_tcategoria INT PRIMARY KEY,
+	id_categoria INT IDENTITY(1,1) PRIMARY KEY,
 	descripcion NVARCHAR(255) NOT NULL
 )
 GO
 
 CREATE TABLE DB_OWNERS.REPARTIDOR(
-	id_repartidor int PRIMARY KEY,
+	id_repartidor INT IDENTITY(1,1) PRIMARY KEY,
 	id_localidad int NOT NULL, --fk
 	id_movilidad int NOT NULL, --fk
 	nombre nvarchar(255) NOT NULL,
@@ -155,7 +162,7 @@ CREATE TABLE DB_OWNERS.REPARTIDOR(
 GO
 
 CREATE TABLE DB_OWNERS.TRAYECTO(
-	id_trayecto int PRIMARY KEY,
+	id_trayecto INT IDENTITY(1,1) PRIMARY KEY,
 	id_direccion_origen int NOT NULL, --fk
 	id_direccion_destino int NOT NULL, --fk
 	distancia decimal(18,2) NOT NULL
@@ -166,20 +173,20 @@ CREATE TABLE DB_OWNERS.PRODUCTO_POR_LOCAL(
 	cod_producto nvarchar(50) NOT NULL, --fk
 	id_local int NOT NULL, --fk
 	precio_unitario decimal(18,2) NOT NULL,
-	PRIMARY KEY (cod_producto, id_local)
+	PRIMARY KEY (cod_producto,Â id_local)
 )
 GO
 
 
 CREATE TABLE DB_OWNERS.PRODUCTO(
-	cod_producto int PRIMARY KEY,
+	cod_producto INT IDENTITY(1,1) PRIMARY KEY,
 	nombre nvarchar(50) NOT NULL,
 	descripcion nvarchar(255) NOT NULL
 )
 GO
 
 CREATE TABLE DB_OWNERS.ITEM(
-	id_item int PRIMARY KEY,
+	id_item INT IDENTITY(1,1) PRIMARY KEY,
 	cod_producto nvarchar(50) NOT NULL, --fk
 	nro_pedido int NOT NULL, --fk
 	cantidad int NOT NULL,
@@ -188,7 +195,7 @@ CREATE TABLE DB_OWNERS.ITEM(
 GO
 
 CREATE TABLE DB_OWNERS.ENVIO(
-	id_envio int PRIMARY KEY,
+	id_envio INT IDENTITY(1,1) PRIMARY KEY,
 	id_trayecto int NOT NULL, --fk
 	id_repartidor int NOT NULL, --fk
 	tiempo_est_entrega decimal(18,2) NOT NULL,
@@ -198,13 +205,13 @@ CREATE TABLE DB_OWNERS.ENVIO(
 GO
 
 CREATE TABLE DB_OWNERS.MOVILIDAD(
-	id_movilidad int PRIMARY KEY,
+	id_movilidad INT IDENTITY(1,1) PRIMARY KEY,
 	vehiculo nvarchar(50) NOT NULL
 )
 GO
 
 CREATE TABLE DB_OWNERS.HORARIO_ATENCION(
-	id_horario_atencion int PRIMARY KEY,
+	id_horario_atencion INT IDENTITY(1,1) PRIMARY KEY,
 	hora_apertura decimal(18,0) NOT NULL,
 	hora_cierre decimal(18,0) NOT NULL,
 	id_dia_semana int NOT NULL, --fk
@@ -213,7 +220,7 @@ CREATE TABLE DB_OWNERS.HORARIO_ATENCION(
 GO
 
 CREATE TABLE DB_OWNERS.DIA_SEMANA(
-	id_dia_semana int PRIMARY KEY,
+	id_dia_semana INT IDENTITY(1,1) PRIMARY KEY,
 	nombre_dia nvarchar(15) NOT NULL
 )
 GO
@@ -227,7 +234,6 @@ CREATE TABLE DB_OWNERS.RECLAMO
 	id_estado INT NOT NULL,   ---FK
 	id_operador INT NOT NULL,  --FK
 	id_solucion INT NOT NULL,  --FK 
-	id_cupon_reclamo INT NOT NULL,  --FK
 	fecha DATETIME2(3) NOT NULL,
 	descripcion NVARCHAR(255) NOT NULL,
 	calificacion DECIMAL(18,0),
@@ -251,7 +257,7 @@ GO
 
 CREATE TABLE DB_OWNERS.OPERADOR
 (
-	id_operador INT PRIMARY KEY,
+	id_operador INT IDENTITY(1,1) PRIMARY KEY,
 	nombre NVARCHAR(255) NOT NULL,
 	apellido VARCHAR(255) NOT NULL,
 	dni DECIMAL(18,0) NOT NULL,
@@ -279,7 +285,7 @@ GO
 
 CREATE TABLE DB_OWNERS.TIPO_PAQUETE 
 (
-	id_tipo_paquete INT PRIMARY KEY,
+	id_tipo_paquete INT IDENTITY(1,1) PRIMARY KEY,
 	descripcion NVARCHAR(50) NOT NULL,
 	alto_max DECIMAL(18,2) NOT NULL,
 	ancho_max DECIMAL(18,2) NOT NULL,
@@ -291,7 +297,7 @@ GO
 
 CREATE TABLE DB_OWNERS.ENVIO_MENSAJERIA
 (
-	nro_mensajeria INT PRIMARY KEY,
+	nro_mensajeria INT IDENTITY(1,1) PRIMARY KEY,
 	id_usuario INT NOT NULL,
 	id_tipo_paquete INT NOT NULL,
 	id_envio INT NOT NULL,
@@ -310,22 +316,22 @@ GO
 
 CREATE TABLE DB_OWNERS.ESTADO
 (
-	id_estado INT PRIMARY KEY,
+	id_estado INT IDENTITY(1,1) PRIMARY KEY,
 	estado NVARCHAR (50) NOT NULL
 )
 GO
 
 CREATE TABLE DB_OWNERS.CUPON_USADO
 (
-	id_cupon_usado INT PRIMARY KEY,
-	id_nro_cupon INT NOT NULL,
-	nro_pedido INT NOT NULL
+	id_cupon_usado INT IDENTITY(1,1) PRIMARY KEY,
+	id_cupon INT NOT NULL,-- (fk)
+	nro_pedido INT NOT NULL-- (fk)
 )
 GO
 
 CREATE TABLE DB_OWNERS.PEDIDO 
 (
-	nro_pedido INT PRIMARY KEY,
+	nro_pedido INT IDENTITY(1,1) PRIMARY KEY,
 	id_usuario INT NOT NULL, -- (fk)
 	id_local INT NOT NULL, -- (fk)
 	fecha DATETIME2(3) NOT NULL,
@@ -341,6 +347,7 @@ CREATE TABLE DB_OWNERS.PEDIDO
 	total_productos DECIMAL(18, 2) NOT NULL
 )
 GO
+
 
 
 
@@ -361,16 +368,9 @@ BEGIN
 		m.USUARIO_FECHA_NAC
 	FROM gd_esquema.Maestra m
 END
+
 GO
 
-CREATE PROCEDURE DB_OWNERS.migrar_estado_reclamo AS
-BEGIN
-	INSERT INTO DB_OWNERS.ESTADO_RECLAMO
-	SELECT DISTINCT 
-		RECLAMO_ESTADO
-	FROM gd_esquema.Maestra
-END
-GO
 
 
 
@@ -384,8 +384,14 @@ GO
 --------------------------------------
 
 BEGIN TRANSACTION 
-	--EXECUTE DB_OWNERS.migrar_usuario
-	
+
+	EXECUTE DB_OWNERS.migrar_usuario
+	EXECUTE DB_OWNERS.migrar_provincias;
+	EXECUTE DB_OWNERS.migrar_localidades;
+	EXECUTE DB_OWNERS.migrar_direcciones; 
+	EXECUTE DB_OWNERS.migrar_tipo_cupon;
+	EXECUTE DB_OWNERS.migrar_cupon;
+
 	
 COMMIT TRANSACTION
 
@@ -415,7 +421,7 @@ ADD FOREIGN KEY (id_usuario) REFERENCES DB_OWNERS.USUARIO(id_usuario),
 
 ALTER TABLE DB_OWNERS.CUPON
 ADD FOREIGN KEY (id_usuario) REFERENCES DB_OWNERS.USUARIO(id_usuario),
-	FOREIGN KEY (id_pedido) REFERENCES DB_OWNERS.PEDIDO(id_pedido);
+	FOREIGN KEY (id_tipo_cupon) REFERENCES DB_OWNERS.TIPO_CUPON(id_tipo_cupon);
 
 ALTER TABLE DB_OWNERS.MEDIO_DE_PAGO
 ADD FOREIGN KEY (id_datos_tarjeta) REFERENCES DB_OWNERS.DATOS_TARJETA(id_datos_tarjeta);
@@ -437,11 +443,10 @@ ADD FOREIGN KEY (id_usuario) REFERENCES DB_OWNERS.USUARIO(id_usuario),
 	FOREIGN KEY (id_tipo_reclamo) REFERENCES DB_OWNERS.TIPO_RECLAMO(id_tipo_reclamo),
 	FOREIGN KEY (id_estado) REFERENCES DB_OWNERS.ESTADO_RECLAMO(id_estado_reclamo),
 	FOREIGN KEY (id_operador) REFERENCES DB_OWNERS.OPERADOR(id_operador),
-	FOREIGN KEY (id_solucion) REFERENCES DB_OWNERS.SOLUCION(id_solucion),
-	FOREIGN KEY (id_cupon_reclamo) REFERENCES DB_OWNERS.CUPON_RECLAMO(id_cupon_reclamo);
+	FOREIGN KEY (id_solucion) REFERENCES DB_OWNERS.SOLUCION(id_solucion);
 
 ALTER TABLE DB_OWNERS.OPERADOR
-ADD FOREIGN KEY (id_direccion) REFERENCES DB_OWNERS.DIRECCION(id_direccion);
+	ADD FOREIGN KEY (id_direccion) REFERENCES DB_OWNERS.DIRECCION(id_direccion);
 
 ALTER TABLE DB_OWNERS.CUPON_RECLAMO
 ADD FOREIGN KEY (id_reclamo) REFERENCES DB_OWNERS.RECLAMO(nro_reclamo),
@@ -454,8 +459,8 @@ ADD FOREIGN KEY (id_usuario) REFERENCES DB_OWNERS.USUARIO(id_usuario),
 	FOREIGN KEY (id_estado) REFERENCES DB_OWNERS.ESTADO(id_estado),
 	FOREIGN KEY (id_pago) REFERENCES DB_OWNERS.PAGO(id_pago);
 
-ALTER TABLE DB_OWNERS.ENVIO_MENSAJERIA
-ADD FOREIGN KEY (id_nro_cupon) REFERENCES DB_OWNERS.CUPON(id_nro_cupon),
+ALTER TABLE DB_OWNERS.CUPON_USADO
+ADD FOREIGN KEY (id_cupon) REFERENCES DB_OWNERS.CUPON(id_cupon),
 	FOREIGN KEY (nro_pedido) REFERENCES DB_OWNERS.PEDIDO(nro_pedido);
 
 ALTER TABLE DB_OWNERS.PEDIDO
