@@ -86,22 +86,20 @@ GO
 /*ESTE NO SE BIEN COMO HACERLO, SINO DE ULTIMA DEJAR LA DIRECCION COMPLETA CON EL NRO Y CALLE EN UN SOLO CAMPO*/
 CREATE PROCEDURE DB_OWNERS.migrar_direcciones AS
 BEGIN
+
 INSERT INTO DB_OWNERS.DIRECCION(
 	calle, 
-	numero,
 	id_localidad
 	)
 	SELECT DISTINCT
-		m.DIRECCION_USUARIO_DIRECCION,-- Como separo la direccion en calle y numero, si son todas distintas?
-		m.DIRECCION_USUARIO_DIRECCION, -- aca vendria el nro
+		m.DIRECCION_USUARIO_DIRECCION,
 		L.id_localidad
 	from gd_esquema.Maestra m
 	JOIN DB_OWNERS.LOCALIDAD L ON L.id_localidad = m.DIRECCION_USUARIO_LOCALIDAD
 	where DIRECCION_USUARIO_DIRECCION is NOT NULL
 	UNION
 	SELECT DISTINCT
-		m.LOCAL_DIRECCION,-- Como separo la direccion en calle y numero, si son todas distintas?
-		m.LOCAL_DIRECCION, -- aca vendria el nro
+		m.LOCAL_DIRECCION,
 		L.id_localidad
 	from gd_esquema.Maestra m
 	JOIN DB_OWNERS.LOCALIDAD L ON L.id_localidad = m.LOCAL_LOCALIDAD
@@ -109,11 +107,10 @@ INSERT INTO DB_OWNERS.DIRECCION(
 	UNION
 	--no hay direcciones en operador.. las paso igual?
 	SELECT DISTINCT
-		m.OPERADOR_RECLAMO_DIRECCION,-- Como separo la direccion en calle y numero, si son todas distintas?
-		m.OPERADOR_RECLAMO_DIRECCION, -- aca vendria el nro
+		m.OPERADOR_RECLAMO_DIRECCION,
 		L.id_localidad
 	from gd_esquema.Maestra m
-	JOIN DB_OWNERS.LOCALIDAD L ON L.id_localidad =  --no tiene localidad asociada a esa direccion tampoco, asi que esto nolo podria hacer
+	JOIN DB_OWNERS.LOCALIDAD L ON L.id_localidad = m.OPERADOR_RECLAMO_DIRECCION --no tiene localidad asociada a esa direccion tampoco, asi que esto nolo podria hacer
 	where LOCAL_DIRECCION is NOT NULL
 END
 GO
@@ -266,3 +263,65 @@ BEGIN
 END
 GO
 
+
+//////**************///////////////////
+CREATE PROCEDURE DB_OWNERS.migrar_tipo_cupon AS
+BEGIN
+	INSERT INTO DB_OWNERS.TIPO_CUPON(
+		descripcion
+	)
+	SELECT DISTINCT 
+		m.CUPON_TIPO
+	FROM gd_esquema.Maestra m 
+	WHERE m.CUPON_TIPO IS NOT NULL
+	UNION
+	SELECT DISTINCT 
+		m.CUPON_RECLAMO_TIPO
+	FROM gd_esquema.Maestra m 
+	WHERE m.CUPON_RECLAMO_TIPO IS NOT NULL
+END
+GO
+
+CREATE PROCEDURE DB_OWNERS.migrar_cupon AS
+BEGIN
+	DELETE FROM DB_OWNERS.CUPON
+	DBCC CHECKIDENT ('DB_OWNERS.CUPON', RESEED, 0)
+	INSERT INTO DB_OWNERS.CUPON(
+		nro_cupon,
+		id_usuario,
+		monto,
+		fecha_alta,
+		fecha_vencimiento,
+		id_tipo_cupon
+	)
+	SELECT 
+		m.CUPON_NRO,
+		u.id_usuario,
+		m.CUPON_MONTO,
+		m.CUPON_FECHA_ALTA,
+		m.CUPON_FECHA_VENCIMIENTO,
+		T.id_tipo_cupon
+	FROM (
+		SELECT DISTINCT m.CUPON_NRO, m.CUPON_MONTO, m.CUPON_FECHA_ALTA, m.CUPON_FECHA_VENCIMIENTO,m.CUPON_TIPO,m.USUARIO_DNI
+		FROM gd_esquema.Maestra m
+	) m
+	JOIN DB_OWNERS.TIPO_CUPON T ON T.descripcion = m.CUPON_TIPO
+	JOIN DB_OWNERS.USUARIO U ON u.dni = m.USUARIO_DNI
+	WHERE m.CUPON_NRO IS NOT NULL
+	UNION
+	SELECT 
+		m.CUPON_RECLAMO_NRO,
+		u.id_usuario,
+		m.CUPON_RECLAMO_MONTO,
+		m.CUPON_RECLAMO_FECHA_ALTA,
+		m.CUPON_RECLAMO_FECHA_VENCIMIENTO,
+		T.id_tipo_cupon
+	FROM (
+		SELECT DISTINCT m.CUPON_RECLAMO_NRO, m.CUPON_RECLAMO_MONTO, m.CUPON_RECLAMO_FECHA_ALTA, m.CUPON_RECLAMO_FECHA_VENCIMIENTO,m.CUPON_RECLAMO_TIPO,m.USUARIO_DNI
+		FROM [GD1C2023].[gd_esquema].[Maestra] m
+	) m
+	JOIN [GD1C2023].[DB_OWNERS].[TIPO_CUPON] T ON T.descripcion = m.CUPON_RECLAMO_TIPO
+	JOIN [GD1C2023].[DB_OWNERS].[USUARIO] U ON u.dni = m.USUARIO_DNI
+	WHERE m.CUPON_RECLAMO_NRO IS NOT NULL
+END
+GO
