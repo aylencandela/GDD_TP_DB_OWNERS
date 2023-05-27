@@ -37,26 +37,28 @@ BEGIN
 END
 GO
 
-
-CREATE PROCEDURE DB_OWNERS.migrar_cupon_reclamo AS
+CREATE PROCEDURE DB_OWNERS.migrar_operador AS
 BEGIN
-	INSERT INTO DB_OWNERS.CUPON_RECLAMO
+	INSERT INTO DB_OWNERS.OPERADOR
 	SELECT DISTINCT 
-		RECLAMO_SOLUCION
-	FROM gd_esquema.Maestra
-	WHERE RECLAMO_SOLUCION IS NOT NULL
+		m.OPERADOR_RECLAMO_NOMBRE,
+		m.OPERADOR_RECLAMO_APELLIDO,
+		m.OPERADOR_RECLAMO_DNI,
+		m.OPERADOR_RECLAMO_TELEFONO,
+		m.OPERADOR_RECLAMO_MAIL,
+		m.OPERADOR_RECLAMO_FECHA_NAC,
+		d.id_direccion
+	FROM gd_esquema.Maestra m
+	JOIN DB_OWNERS.DIRECCION d ON d.calle_numero = m.OPERADOR_RECLAMO_DIRECCION
+	WHERE 
+		m.OPERADOR_RECLAMO_NOMBRE IS NOT NULL and
+		m.OPERADOR_RECLAMO_APELLIDO IS NOT NULL and
+		m.OPERADOR_RECLAMO_DNI IS NOT NULL and
+		m.OPERADOR_RECLAMO_TELEFONO IS NOT NULL and
+		m.OPERADOR_RECLAMO_MAIL IS NOT NULL and
+		m.OPERADOR_RECLAMO_FECHA_NAC IS NOT NULL
 END
 GO
-
-
-CREATE TABLE DB_OWNERS.CUPON_RECLAMO
-(
-	id_cupon_reclamo INT IDENTITY (1,1) PRIMARY KEY,
-	id_reclamo INT NOT NULL, --FK
-	id_nro_cupon INT NOT NULL --FK
-)
-GO
-
 
 
 
@@ -204,17 +206,13 @@ BEGIN TRANSACTION
 --LUGARES
 	--EXECUTE DB_OWNERS.migrar_provincias
 	--EXECUTE DB_OWNERS.migrar_localidades
-	EXECUTE DB_OWNERS.migrar_direcciones
-	EXECUTE DB_OWNERS.migrar_direcciones2
+	--EXECUTE DB_OWNERS.migrar_direcciones
+	--EXECUTE DB_OWNERS.migrar_direcciones2
+	EXECUTE DB_OWNERS.migrar_operador
 COMMIT TRANSACTION
 
 
-select distinct DIRECCION_USUARIO_DIRECCION from gd_esquema.maestra
-select distinct OPERADOR_RECLAMO_DIRECCION from gd_esquema.maestra --calle y direcciones juntas
-select distinct LOCAL_DIRECCION from gd_esquema.maestra--calle y direcciones juntas
-select distinct REPARTIDOR_DIRECION from gd_esquema.Maestra--calle y direcciones juntas
-select distinct ENVIO_MENSAJERIA_DIR_DEST from gd_esquema.Maestra
-select distinct ENVIO_MENSAJERIA_DIR_ORIG from gd_esquema.Maestra
 
-select * from db_owners.direccion 
+
+select * from db_owners.operador
 
