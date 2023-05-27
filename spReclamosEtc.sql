@@ -2,6 +2,23 @@
 ------------ PROCEDURES --------------
 --------------------------------------
 
+--USUARIO
+CREATE PROCEDURE DB_OWNERS.migrar_usuario AS
+BEGIN
+	INSERT INTO DB_OWNERS.USUARIO
+	SELECT DISTINCT 
+		m.USUARIO_NOMBRE,
+		m.USUARIO_APELLIDO, 
+		m.USUARIO_DNI, 
+		m.USUARIO_FECHA_REGISTRO, 
+		m.USUARIO_TELEFONO, 
+		m.USUARIO_MAIL,
+		m.USUARIO_FECHA_NAC
+	FROM gd_esquema.Maestra m
+END
+GO
+
+
 --LOCALES
 CREATE PROCEDURE DB_OWNERS.migrar_tipos_local AS
 BEGIN
@@ -186,6 +203,77 @@ END
 GO
 
 
+CREATE PROCEDURE DB_OWNERS.migrar_envio
+AS BEGIN
+	INSERT INTO DB_OWNERS.ENVIO
+	SELECT DISTINCT 
+		r.id_repartidor,
+		m.ENVIO_MENSAJERIA_TIEMPO_ESTIMADO,
+		m.ENVIO_MENSAJERIA_PROPINA,
+		m.ENVIO_MENSAJERIA_PRECIO_ENVIO
+	FROM gd_esquema.Maestra m
+	JOIN DB_OWNERS.REPARTIDOR R ON R.nombre = m.REPARTIDOR_NOMBRE and R.apellido = m.REPARTIDOR_APELLIDO and R.dni = m.REPARTIDOR_DNI
+	WHERE 
+		m.ENVIO_MENSAJERIA_NRO IS NOT NULL and
+		m.ENVIO_MENSAJERIA_TIEMPO_ESTIMADO IS NOT NULL and
+		m.ENVIO_MENSAJERIA_PROPINA IS NOT NULL and
+		m.ENVIO_MENSAJERIA_PRECIO_ENVIO IS NOT NULL
+	INSERT INTO DB_OWNERS.ENVIO
+	SELECT DISTINCT 
+		r.id_repartidor,
+		m.PEDIDO_TIEMPO_ESTIMADO_ENTREGA,
+		m.PEDIDO_PROPINA,
+		m.PEDIDO_PRECIO_ENVIO
+	FROM gd_esquema.Maestra m
+	JOIN DB_OWNERS.REPARTIDOR R ON R.nombre = m.REPARTIDOR_NOMBRE and R.apellido = m.REPARTIDOR_APELLIDO and R.dni = m.REPARTIDOR_DNI
+	WHERE 
+		m.ENVIO_MENSAJERIA_NRO IS NULL and
+		m.PEDIDO_TIEMPO_ESTIMADO_ENTREGA IS NOT NULL and
+		m.PEDIDO_PROPINA IS NOT NULL and
+		m.PEDIDO_PRECIO_ENVIO IS NOT NULL
+END
+GO	
+
+CREATE PROCEDURE DB_OWNERS.migrar_envio_mensajeria
+AS BEGIN
+	INSERT INTO DB_OWNERS.ENVIO_MENSAJERIA
+	SELECT DISTINCT 
+		m.ENVIO_MENSAJERIA_NRO,
+		u.id_usuario,
+		m.ENVIO_MENSAJERIA_FECHA,
+		tp.id_tipo_paquete,
+		m.ENVIO_MENSAJERIA_TOTAL,
+		m.ENVIO_MENSAJERIA_OBSERV,
+		e.id_envio,
+		m.ENVIO_MENSAJERIA_CALIFICACION,
+		m.ENVIO_MENSAJERIA_FECHA_ENTREGA,
+		es.id_estado,
+		m.ENVIO_MENSAJERIA_VALOR_ASEGURADO,
+		m.ENVIO_MENSAJERIA_PRECIO_SEGURO,
+		m.ENVIO_MENSAJERIA_PRECIO_ENVIO,
+		mp.id_medio_de_pago,
+		t.id_trayecto
+	FROM gd_esquema.Maestra m
+	JOIN DB_OWNERS.USUARIO u ON u.dni = m.USUARIO_DNI AND u.fecha_nacimiento = m.USUARIO_FECHA_NAC
+	JOIN DB_OWNERS.TIPO_PAQUETE tp ON tp.descripcion = m.PAQUETE_TIPO
+	JOIN DB_OWNERS.ENVIO e ON e.precio_envio = m.ENVIO_MENSAJERIA_PRECIO_ENVIO AND e.propina = m.ENVIO_MENSAJERIA_PROPINA AND e.tiempo_est_entrega = m.ENVIO_MENSAJERIA_TIEMPO_ESTIMADO
+	JOIN DB_OWNERS.ESTADO es ON es.estado = m.ENVIO_MENSAJERIA_ESTADO
+	JOIN DB_OWNERS.DATOS_TARJETA dt ON dt.numero = m.MEDIO_PAGO_NRO_TARJETA AND dt.id_usuario = u.id_usuario
+	JOIN DB_OWNERS.MEDIO_DE_PAGO mp ON mp.id_datos_tarjeta = dt.id_datos_tarjeta AND mp.medio = m.MEDIO_PAGO_TIPO
+	JOIN DB_OWNERS.TRAYECTO t ON t.distancia = m.ENVIO_MENSAJERIA_KM
+	JOIN DB_OWNERS.DIRECCION d ON d.calle_numero = m.ENVIO_MENSAJERIA_DIR_DEST AND t.id_direccion_destino = d.id_direccion
+	JOIN DB_OWNERS.DIRECCION d2 ON d2.calle_numero = m.ENVIO_MENSAJERIA_DIR_ORIG AND t.id_direccion_origen = d2.id_direccion
+	WHERE 
+		m.ENVIO_MENSAJERIA_NRO IS NOT NULL and
+		m.ENVIO_MENSAJERIA_FECHA IS NOT NULL and
+		m.ENVIO_MENSAJERIA_TOTAL IS NOT NULL and
+		m.ENVIO_MENSAJERIA_VALOR_ASEGURADO IS NOT NULL and
+		m.ENVIO_MENSAJERIA_PRECIO_SEGURO IS NOT NULL and
+		m.ENVIO_MENSAJERIA_PRECIO_ENVIO IS NOT NULL
+END
+GO
+
+
 
 --LUGARES
 
@@ -249,15 +337,9 @@ END
 GO
 
 
-/*
-IF EXISTS (SELECT * FROM sys.objects WHERE name = 'migrar_direcciones')
-DROP PROCEDURE DB_OWNERS.migrar_direcciones
-GO*/
+
 CREATE PROCEDURE DB_OWNERS.migrar_direcciones AS
 BEGIN
-/*
-DELETE FROM DB_OWNERS.DIRECCION
-	DBCC CHECKIDENT ('DB_OWNERS.DIRECCION', RESEED, 0)*/
 INSERT INTO DB_OWNERS.DIRECCION(
 	calle_numero,
 	id_localidad
@@ -293,10 +375,7 @@ END
 GO
 
 
-/*
-IF EXISTS (SELECT * FROM sys.objects WHERE name = 'migrar_direcciones2')
-DROP PROCEDURE DB_OWNERS.migrar_direcciones2
-GO*/
+
 CREATE PROCEDURE DB_OWNERS.migrar_direcciones2 AS
 BEGIN
 INSERT INTO DB_OWNERS.DIRECCION(
@@ -315,24 +394,69 @@ END
 GO
 
 
+--TARJETAS
+IF EXISTS (SELECT * FROM sys.objects WHERE name = 'migrar_datos_tarjeta')
+DROP PROCEDURE DB_OWNERS.migrar_datos_tarjeta
+GO
+CREATE PROCEDURE DB_OWNERS.migrar_datos_tarjeta
+AS BEGIN
+	DELETE FROM DB_OWNERS.DATOS_TARJETA -- Usar para evitar duplicar entradas
+	DBCC CHECKIDENT ('DB_OWNERS.DATOS_TARJETA', RESEED, 0) -- Usar para evitar duplicar entradas
+	INSERT INTO DB_OWNERS.DATOS_TARJETA(id_usuario, marca, numero, tipo)
+	SELECT DISTINCT 
+		u.id_usuario,
+		m.MARCA_TARJETA,
+		m.MEDIO_PAGO_NRO_TARJETA,
+		m.MEDIO_PAGO_TIPO
+	FROM gd_esquema.Maestra m
+	JOIN DB_OWNERS.USUARIO u
+	ON u.dni = m.USUARIO_DNI AND u.fecha_nacimiento = m.USUARIO_FECHA_NAC
+	WHERE m.MEDIO_PAGO_TIPO != 'Efectivo'
+END
+GO
+
+IF EXISTS (SELECT * FROM sys.objects WHERE name = 'migrar_medio_de_pago')
+DROP PROCEDURE DB_OWNERS.migrar_medio_de_pago
+GO
+CREATE PROCEDURE DB_OWNERS.migrar_medio_de_pago
+AS BEGIN
+	DELETE FROM DB_OWNERS.MEDIO_DE_PAGO -- Usar para evitar duplicar entradas
+	DBCC CHECKIDENT ('DB_OWNERS.MEDIO_DE_PAGO', RESEED, 0) -- Usar para evitar duplicar entradas
+	INSERT INTO DB_OWNERS.MEDIO_DE_PAGO(medio)
+	VALUES ('Efectivo')
+	INSERT INTO DB_OWNERS.MEDIO_DE_PAGO(id_datos_tarjeta, medio)
+	SELECT DISTINCT 
+		dt.id_datos_tarjeta,
+		dt.tipo
+	FROM gd_esquema.Maestra m
+	JOIN DB_OWNERS.DATOS_TARJETA dt 
+	ON dt.numero = m.MEDIO_PAGO_NRO_TARJETA AND dt.tipo = m.MEDIO_PAGO_TIPO AND dt.marca = m.MARCA_TARJETA
+	WHERE m.MEDIO_PAGO_TIPO != 'Efectivo'
+END
+GO
 
 	
 
 BEGIN TRANSACTION 
+--USUARIO
+	--EXECUTE DB_OWNERS.migrar_usuario
+
+--TARJETAS
+	--EXECUTE DB_OWNERS.migrar_datos_tarjeta
+	--EXECUTE DB_OWNERS.migrar_medio_de_pago
+
 --RECLAMOS
 	--EXECUTE DB_OWNERS.migrar_estado_reclamo
 	--EXECUTE DB_OWNERS.migrar_tipo_reclamo
 	--EXECUTE DB_OWNERS.migrar_solucion_reclamo
-
+	--EXECUTE DB_OWNERS.migrar_operador
 
 --LUGARES
 	--EXECUTE DB_OWNERS.migrar_provincias
 	--EXECUTE DB_OWNERS.migrar_localidades
 	--EXECUTE DB_OWNERS.migrar_direcciones
 	--EXECUTE DB_OWNERS.migrar_direcciones2
-	--EXECUTE DB_OWNERS.migrar_operador
 	
-
 
 --ENVIO PAQUETES
 	--EXECUTE DB_OWNERS.migrar_tipo_paquete
@@ -340,7 +464,8 @@ BEGIN TRANSACTION
 	--EXECUTE DB_OWNERS.migrar_repartidor
 	--EXECUTE DB_OWNERS.migrar_trayecto
 	--EXECUTE DB_OWNERS.migrar_estado
-
+	--EXECUTE DB_OWNERS.migrar_envio
+	--EXECUTE DB_OWNERS.migrar_envio_mensajeria
 
 
 --LOCALES
@@ -348,7 +473,8 @@ BEGIN TRANSACTION
 	--EXECUTE DB_OWNERS.migrar_categorias
 	--EXECUTE DB_OWNERS.migrar_locales
 	--EXECUTE DB_OWNERS.migrar_repartidor
-COMMIT TRANSACTION
 
+
+COMMIT TRANSACTION
 
 

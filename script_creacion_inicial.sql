@@ -36,9 +36,9 @@ CREATE TABLE DB_OWNERS.DATOS_TARJETA
 (
 	id_datos_tarjeta INT IDENTITY (1,1) PRIMARY KEY,
 	id_usuario INT NOT NULL,     --FK
-	tipo NVARCHAR(255) NOT NULL,
-	numero NVARCHAR(50) NOT NULL,
 	marca NVARCHAR(100) NOT NULL,
+	numero NVARCHAR(50) NOT NULL,
+	tipo NVARCHAR(50) NOT NULL
 )
 GO
 
@@ -101,8 +101,8 @@ GO
 CREATE TABLE DB_OWNERS.MEDIO_DE_PAGO
 (
 	id_medio_de_pago INT IDENTITY(1,1) PRIMARY KEY,
-	medio NVARCHAR(50) NOT NULL,
-	id_datos_tarjeta INT --FK
+	id_datos_tarjeta INT, --FK
+	medio NVARCHAR(50) NOT NULL
 )
 GO
 
@@ -181,7 +181,7 @@ CREATE TABLE DB_OWNERS.ITEM(
 GO
 
 CREATE TABLE DB_OWNERS.ENVIO(
-	id_envio INT IDENTITY(1,1) PRIMARY KEY,
+	id_envio INT IDENTITY(1,1) PRIM	ARY KEY,
 	id_repartidor int NOT NULL, --fk
 	tiempo_est_entrega decimal(18,2) NOT NULL,
 	propina decimal(18,2) NOT NULL,
@@ -282,20 +282,22 @@ GO
 
 CREATE TABLE DB_OWNERS.ENVIO_MENSAJERIA
 (
-	nro_mensajeria INT IDENTITY(1,1) PRIMARY KEY,
-	id_usuario INT NOT NULL,
-	id_tipo_paquete INT NOT NULL,
-	id_envio INT NOT NULL,
-	id_estado INT NOT NULL,
-	id_pago INT NOT NULL,
-	fecha_hora DATETIME NOT NULL,
+	id_envio_mensajeria INT IDENTITY(1,1) PRIMARY KEY,
+	nro_mensajeria DECIMAL(18,0) NOT NULL,
+	id_usuario INT NOT NULL, --fk
+	fecha_hora DATETIME2(3) NOT NULL,
+	id_tipo_paquete INT NOT NULL, --fk
 	precio_total DECIMAL(18,2) NOT NULL,
-	observaciones NVARCHAR(50),
-	calificacion INT,
+	observaciones NVARCHAR(255),
+	id_envio INT NOT NULL, --fk
+	calificacion DECIMAL(18,0),
 	fecha_hora_entrega DATETIME2(3),
+	id_estado INT NOT NULL, --fk
 	valor_asegurado DECIMAL(18,2) NOT NULL,
 	precio_seguro DECIMAL(18,2) NOT NULL,
 	precio_envio_mensajeria DECIMAL(18,2) NOT NULL,
+	id_medio_de_pago INT NOT NULL, --fk
+	id_trayecto INT NOT NULL, --fk	
 )
 GO
 
@@ -340,21 +342,7 @@ GO
 ------------ PROCEDURES --------------
 --------------------------------------
 
-CREATE PROCEDURE DB_OWNERS.migrar_usuario AS
-BEGIN
-	INSERT INTO DB_OWNERS.USUARIO
-	SELECT DISTINCT 
-		m.USUARIO_NOMBRE,
-		m.USUARIO_APELLIDO, 
-		m.USUARIO_DNI, 
-		m.USUARIO_FECHA_REGISTRO, 
-		m.USUARIO_TELEFONO, 
-		m.USUARIO_MAIL,
-		m.USUARIO_FECHA_NAC
-	FROM gd_esquema.Maestra m
-END
 
-GO
 
 
 
@@ -370,12 +358,6 @@ GO
 
 BEGIN TRANSACTION 
 
-	EXECUTE DB_OWNERS.migrar_usuario
-	EXECUTE DB_OWNERS.migrar_provincias;
-	EXECUTE DB_OWNERS.migrar_localidades;
-	EXECUTE DB_OWNERS.migrar_direcciones; 
-	EXECUTE DB_OWNERS.migrar_tipo_cupon;
-	EXECUTE DB_OWNERS.migrar_cupon;
 
 	
 COMMIT TRANSACTION
