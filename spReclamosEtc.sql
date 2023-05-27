@@ -18,6 +18,67 @@ BEGIN
 END
 GO
 
+--CUPONES
+CREATE PROCEDURE DB_OWNERS.migrar_tipo_cupon AS
+BEGIN
+	INSERT INTO DB_OWNERS.TIPO_CUPON(
+		descripcion
+	)
+	SELECT DISTINCT 
+		m.CUPON_TIPO
+	FROM gd_esquema.Maestra m 
+	WHERE m.CUPON_TIPO IS NOT NULL
+	UNION
+	SELECT DISTINCT 
+		m.CUPON_RECLAMO_TIPO
+	FROM gd_esquema.Maestra m 
+	WHERE m.CUPON_RECLAMO_TIPO IS NOT NULL
+END
+GO
+
+CREATE PROCEDURE DB_OWNERS.migrar_cupon AS
+BEGIN
+	DELETE FROM DB_OWNERS.CUPON
+	DBCC CHECKIDENT ('DB_OWNERS.CUPON', RESEED, 0)
+	INSERT INTO DB_OWNERS.CUPON(
+		nro_cupon,
+		id_usuario,
+		monto,
+		fecha_alta,
+		fecha_vencimiento,
+		id_tipo_cupon
+	)
+	SELECT 
+		m.CUPON_NRO,
+		u.id_usuario,
+		m.CUPON_MONTO,
+		m.CUPON_FECHA_ALTA,
+		m.CUPON_FECHA_VENCIMIENTO,
+		T.id_tipo_cupon
+	FROM (
+		SELECT DISTINCT m.CUPON_NRO, m.CUPON_MONTO, m.CUPON_FECHA_ALTA, m.CUPON_FECHA_VENCIMIENTO,m.CUPON_TIPO,m.USUARIO_DNI
+		FROM gd_esquema.Maestra m
+	) m
+	JOIN DB_OWNERS.TIPO_CUPON T ON T.descripcion = m.CUPON_TIPO
+	JOIN DB_OWNERS.USUARIO U ON u.dni = m.USUARIO_DNI
+	WHERE m.CUPON_NRO IS NOT NULL
+	UNION
+	SELECT 
+		m.CUPON_RECLAMO_NRO,
+		u.id_usuario,
+		m.CUPON_RECLAMO_MONTO,
+		m.CUPON_RECLAMO_FECHA_ALTA,
+		m.CUPON_RECLAMO_FECHA_VENCIMIENTO,
+		T.id_tipo_cupon
+	FROM (
+		SELECT DISTINCT m.CUPON_RECLAMO_NRO, m.CUPON_RECLAMO_MONTO, m.CUPON_RECLAMO_FECHA_ALTA, m.CUPON_RECLAMO_FECHA_VENCIMIENTO,m.CUPON_RECLAMO_TIPO,m.USUARIO_DNI
+		FROM [GD1C2023].[gd_esquema].[Maestra] m
+	) m
+	JOIN DB_OWNERS.TIPO_CUPON T ON T.descripcion = m.CUPON_RECLAMO_TIPO
+	JOIN DB_OWNERS.USUARIO U ON u.dni = m.USUARIO_DNI
+	WHERE m.CUPON_RECLAMO_NRO IS NOT NULL
+END
+GO
 
 --LOCALES
 CREATE PROCEDURE DB_OWNERS.migrar_tipos_local AS
@@ -51,6 +112,38 @@ BEGIN
 	WHERE m.LOCAL_NOMBRE IS NOT NULL AND m.LOCAL_DESCRIPCION IS NOT NULL
 END
 GO
+
+CREATE PROCEDURE DB_OWNERS.migrar_dias_semana AS
+BEGIN
+	INSERT INTO DB_OWNERS.DIA_SEMANA(
+		nombre_dia
+	)
+	SELECT DISTINCT 
+		m.HORARIO_LOCAL_DIA
+	FROM gd_esquema.Maestra m
+	WHERE m.HORARIO_LOCAL_DIA IS NOT NULL
+END
+GO
+
+CREATE PROCEDURE DB_OWNERS.migrar_horarios_atencion AS
+BEGIN
+	INSERT INTO DB_OWNERS.HORARIO_ATENCION(
+		hora_apertura,
+		hora_cierre,
+		id_dia_semana,
+		id_local
+	)
+	SELECT DISTINCT 
+		m.HORARIO_LOCAL_HORA_APERTURA,
+		m.HORARIO_LOCAL_HORA_CIERRE,
+		DS.id_dia_semana,
+		L.id_local
+	FROM gd_esquema.Maestra m JOIN DB_OWNERS.DIA_SEMANA DS ON DS.nombre_dia = m.HORARIO_LOCAL_DIA
+	JOIN DB_OWNERS.LOCAL_ L ON L.nombre = m.LOCAL_NOMBRE AND L.descripcion = m.LOCAL_DESCRIPCION
+	WHERE m.HORARIO_LOCAL_HORA_APERTURA IS NOT NULL AND m.HORARIO_LOCAL_HORA_CIERRE IS NOT NULL
+END
+GO
+
 
 --RECLAMOS
 
@@ -436,12 +529,8 @@ END
 GO
 
 --PEDIDOS
-IF EXISTS (SELECT * FROM sys.objects WHERE name = 'migrar_pedidos')
-DROP PROCEDURE DB_OWNERS.migrar_pedidos
-GO
-CREATE PROCEDURE DB_OWNERS.migrar_pedidos
+CREATE PROCEDURE DB_OWNERS.migrar_pedido
 AS BEGIN
-	DELETE FROM DB_OWNERS.PEDIDO -- Usar para evitar duplicar entradas
 	INSERT INTO DB_OWNERS.PEDIDO
 	SELECT DISTINCT 
 		m.PEDIDO_NRO,
@@ -456,8 +545,7 @@ AS BEGIN
 		m.PEDIDO_TARIFA_SERVICIO,
 		mp.id_medio_de_pago,
 		m.PEDIDO_TOTAL_SERVICIO,
-		m.PEDIDO_TOTAL_CUPONES,
-		m.PEDIDO_TOTAL_PRODUCTOS
+		m.PEDIDO_TOTAL_CUPONES
 	FROM gd_esquema.Maestra m
 	JOIN DB_OWNERS.USUARIO u
 	ON u.dni = m.USUARIO_DNI AND u.fecha_nacimiento = m.USUARIO_FECHA_NAC
@@ -477,52 +565,91 @@ AS BEGIN
 	m.PEDIDO_NRO IS NOT NULL AND
 	m.PEDIDO_FECHA IS NOT NULL AND
 	m.PEDIDO_TARIFA_SERVICIO IS NOT NULL AND
-	m.PEDIDO_TOTAL_SERVICIO IS NOT NULL AND
-	m.PEDIDO_TOTAL_CUPONES IS NOT NULL AND
-	m.PEDIDO_TOTAL_PRODUCTOS IS NOT NULL 
+	m.PEDIDO_TOTAL_SERVICIO IS NOT NULL 
+END
+GO
+
+--PRODUCTOS
+
+IF EXISTS (SELECT * FROM sys.objects WHERE name = 'migrar_productos')
+DROP PROCEDURE DB_OWNERS.migrar_productos
+GO
+CREATE PROCEDURE DB_OWNERS.migrar_productos
+AS BEGIN
+	--DELETE FROM DB_OWNERS.PRODUCTO -- Usar para evitar duplicar entradas
+	INSERT INTO DB_OWNERS.PRODUCTO(cod_producto, nombre, descripcion, precio_unitario)
+	SELECT DISTINCT 
+		m.PRODUCTO_LOCAL_CODIGO,
+		m.PRODUCTO_LOCAL_NOMBRE,
+		m.PRODUCTO_LOCAL_DESCRIPCION,
+		m.PRODUCTO_LOCAL_PRECIO
+	FROM gd_esquema.Maestra m
+	WHERE m.PRODUCTO_LOCAL_CODIGO IS NOT NULL
+END
+GO
+
+IF EXISTS (SELECT * FROM sys.objects WHERE name = 'migrar_items')
+DROP PROCEDURE DB_OWNERS.migrar_items
+GO
+CREATE PROCEDURE DB_OWNERS.migrar_items
+AS BEGIN
+	DELETE FROM DB_OWNERS.ITEM -- Usar para evitar duplicar entradas
+	INSERT INTO DB_OWNERS.ITEM(cod_producto, nro_pedido, cantidad, precio_total)
+	SELECT DISTINCT 
+		m.PRODUCTO_LOCAL_CODIGO,
+		p.id_pedido,
+		m.PRODUCTO_CANTIDAD,
+		m.PEDIDO_TOTAL_PRODUCTOS
+	FROM gd_esquema.Maestra m
+	JOIN DB_OWNERS.PEDIDO p ON p.nro_pedido = m.PEDIDO_NRO
+	WHERE m.PRODUCTO_LOCAL_CODIGO IS NOT NULL
 END
 GO
 
 BEGIN TRANSACTION 
 --USUARIO
-	--EXECUTE DB_OWNERS.migrar_usuario
+	EXECUTE DB_OWNERS.migrar_usuario
+	EXECUTE DB_OWNERS.migrar_tipo_cupon
+	EXECUTE DB_OWNERS.migrar_cupon
+
 
 --TARJETAS
-	--EXECUTE DB_OWNERS.migrar_datos_tarjeta
-	--EXECUTE DB_OWNERS.migrar_medio_de_pago
-
---RECLAMOS
-	--EXECUTE DB_OWNERS.migrar_estado_reclamo
-	--EXECUTE DB_OWNERS.migrar_tipo_reclamo
-	--EXECUTE DB_OWNERS.migrar_solucion_reclamo
-	--EXECUTE DB_OWNERS.migrar_operador
+	EXECUTE DB_OWNERS.migrar_datos_tarjeta
+	EXECUTE DB_OWNERS.migrar_medio_de_pago
 
 --LUGARES
-	--EXECUTE DB_OWNERS.migrar_provincias
-	--EXECUTE DB_OWNERS.migrar_localidades
-	--EXECUTE DB_OWNERS.migrar_direcciones
-	--EXECUTE DB_OWNERS.migrar_direcciones2
-	
+	EXECUTE DB_OWNERS.migrar_provincias
+	EXECUTE DB_OWNERS.migrar_localidades
+	EXECUTE DB_OWNERS.migrar_direcciones
+	EXECUTE DB_OWNERS.migrar_direcciones2
 
---ENVIO PAQUETES
-	--EXECUTE DB_OWNERS.migrar_tipo_paquete
-	--EXECUTE DB_OWNERS.migrar_movilidad
-	--EXECUTE DB_OWNERS.migrar_repartidor
-	--EXECUTE DB_OWNERS.migrar_trayecto
-	--EXECUTE DB_OWNERS.migrar_estado
-	--EXECUTE DB_OWNERS.migrar_envio
-	--EXECUTE DB_OWNERS.migrar_envio_mensajeria
-
+--RECLAMOS
+	EXECUTE DB_OWNERS.migrar_estado_reclamo
+	EXECUTE DB_OWNERS.migrar_tipo_reclamo
+	EXECUTE DB_OWNERS.migrar_solucion_reclamo
+	EXECUTE DB_OWNERS.migrar_operador
 
 --LOCALES
-	--EXECUTE DB_OWNERS.migrar_tipos_local
-	--EXECUTE DB_OWNERS.migrar_categorias
-	--EXECUTE DB_OWNERS.migrar_locales
-	--EXECUTE DB_OWNERS.migrar_repartidor
+	EXECUTE DB_OWNERS.migrar_tipos_local
+	EXECUTE DB_OWNERS.migrar_locales
+	EXECUTE DB_OWNERS.migrar_repartidor
+	EXECUTE DB_OWNERS.migrar_dias_semana
+	EXECUTE DB_OWNERS.migrar_horarios_atencion 
+
+--ENVIO PAQUETES
+	EXECUTE DB_OWNERS.migrar_tipo_paquete
+	EXECUTE DB_OWNERS.migrar_movilidad
+	EXECUTE DB_OWNERS.migrar_repartidor
+	EXECUTE DB_OWNERS.migrar_trayecto
+	EXECUTE DB_OWNERS.migrar_estado
+	EXECUTE DB_OWNERS.migrar_envio
+	EXECUTE DB_OWNERS.migrar_envio_mensajeria
+
 
 --PEDIDOS
-	EXECUTE DB_OWNERS.migrar_pedidos
-
+	EXECUTE DB_OWNERS.migrar_productos
+	EXECUTE DB_OWNERS.migrar_pedido
+	EXECUTE DB_OWNERS.migrar_items
 
 COMMIT TRANSACTION
 
