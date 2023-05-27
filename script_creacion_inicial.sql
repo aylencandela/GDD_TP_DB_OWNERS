@@ -106,12 +106,6 @@ CREATE TABLE DB_OWNERS.MEDIO_DE_PAGO
 )
 GO
 
-CREATE TABLE DB_OWNERS.PAGO
-(
-	id_pago INT IDENTITY(1,1) PRIMARY KEY,
-	id_medio_de_pago INT NOT NULL --FK
-)
-GO
 
 CREATE TABLE DB_OWNERS.LOCAL_
 (
@@ -130,7 +124,6 @@ CREATE TABLE DB_OWNERS.TIPO_LOCAL
 	descripcion NVARCHAR(50) NOT NULL
 )
 GO
-
 
 
 CREATE TABLE DB_OWNERS.REPARTIDOR(
@@ -318,7 +311,8 @@ GO
 
 CREATE TABLE DB_OWNERS.PEDIDO 
 (
-	nro_pedido INT IDENTITY(1,1) PRIMARY KEY,
+	id_pedido INT IDENTITY (1,1) PRIMARY KEY,
+	nro_pedido DECIMAL(18, 0) NOT NULL,
 	id_usuario INT NOT NULL, -- (fk)
 	id_local INT NOT NULL, -- (fk)
 	fecha DATETIME2(3) NOT NULL,
@@ -328,13 +322,12 @@ CREATE TABLE DB_OWNERS.PEDIDO
 	calificacion DECIMAL(18,0),
 	fecha_hora_entrega DATETIME2(3),
 	tarifa_servicio DECIMAL(18, 2) NOT NULL,
-	id_pago INT NOT NULL, -- (fk)
+	id_medio_de_pago INT NOT NULL, --fk
 	precio_total_servicio DECIMAL(18, 2) NOT NULL,
 	total_cupones DECIMAL(18, 2) NOT NULL,
 	total_productos DECIMAL(18, 2) NOT NULL
 )
 GO
-
 
 
 
