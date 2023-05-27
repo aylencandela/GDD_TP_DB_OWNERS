@@ -44,11 +44,9 @@ GO
 
 CREATE TABLE DB_OWNERS.DIRECCION
 (
-
 	id_direccion INT IDENTITY (1,1) PRIMARY KEY,
 	calle_numero NVARCHAR(255) NOT NULL, 
-	id_localidad INT--FK
-
+	id_localidad INT --FK
 )
 GO
 
@@ -121,40 +119,28 @@ CREATE TABLE DB_OWNERS.LOCAL_
 	nombre NVARCHAR(255) NOT NULL,
 	descripcion NVARCHAR(255) NOT NULL,
 	id_direccion INT NOT NULL, --FK
-	id_categoria_local INT NOT NULL --FK
+	id_tipo_local INT NOT NULL --FK
 )
 GO
 
-CREATE TABLE DB_OWNERS.CATEGORIA_LOCAL
-(
-	id_categoria_local INT IDENTITY(1,1) PRIMARY KEY,
-	id_tipo_local INT NOT NULL, --FK
-	id_categoria INT NOT NULL --FK
-)
-GO
 
 CREATE TABLE DB_OWNERS.TIPO_LOCAL
 (
 	id_tipo_local INT IDENTITY(1,1) PRIMARY KEY,
-	descripcion NVARCHAR(255) NOT NULL
+	descripcion NVARCHAR(50) NOT NULL
 )
 GO
 
-CREATE TABLE DB_OWNERS.CATEGORIA
-(
-	id_categoria INT IDENTITY(1,1) PRIMARY KEY,
-	descripcion NVARCHAR(255) NOT NULL
-)
-GO
+
 
 CREATE TABLE DB_OWNERS.REPARTIDOR(
 	id_repartidor INT IDENTITY(1,1) PRIMARY KEY,
-	id_localidad int NOT NULL, --fk
+	--id_localidad int, --fk
 	id_movilidad int NOT NULL, --fk
 	nombre nvarchar(255) NOT NULL,
 	apellido nvarchar(255) NOT NULL,
+	direccion nvarchar(255) NOT NULL,
 	dni decimal(18,0) NOT NULL,
-	fecha_registro datetime2(3) NOT NULL,
 	telefono decimal(18,0) NOT NULL,
 	mail nvarchar(255) NOT NULL,
 	fecha_nacimiento date NOT NULL	
@@ -196,7 +182,6 @@ GO
 
 CREATE TABLE DB_OWNERS.ENVIO(
 	id_envio INT IDENTITY(1,1) PRIMARY KEY,
-	id_trayecto int NOT NULL, --fk
 	id_repartidor int NOT NULL, --fk
 	tiempo_est_entrega decimal(18,2) NOT NULL,
 	propina decimal(18,2) NOT NULL,
