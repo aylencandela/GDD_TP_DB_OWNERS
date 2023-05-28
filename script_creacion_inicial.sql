@@ -162,14 +162,14 @@ GO
 CREATE TABLE DB_OWNERS.ITEM(
 	id_item INT IDENTITY(1,1) PRIMARY KEY,
 	cod_producto nvarchar(50) NOT NULL, --fk
-	id_pedido int NOT NULL, --fk
+	nro_pedido int NOT NULL, --fk
 	cantidad int NOT NULL,
 	precio_total decimal(18,2) NOT NULL
 )
 GO
 
 CREATE TABLE DB_OWNERS.ENVIO(
-	id_envio INT IDENTITY(1,1) PRIM	ARY KEY,
+	id_envio INT IDENTITY(1,1) PRIMARY KEY,
 	id_repartidor int NOT NULL, --fk
 	tiempo_est_entrega decimal(18,2) NOT NULL,
 	propina decimal(18,2) NOT NULL,
