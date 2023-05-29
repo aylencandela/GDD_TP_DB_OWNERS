@@ -69,7 +69,7 @@ CREATE TABLE DB_OWNERS.PROVINCIA
 )
 
 GO
-/*
+
 CREATE TABLE DB_OWNERS.DIRECCION_POR_USUARIO
 (
 	id_usuario INT,  ---FK
@@ -77,7 +77,7 @@ CREATE TABLE DB_OWNERS.DIRECCION_POR_USUARIO
 	PRIMARY KEY(id_usuario, id_direccion),
 	nombre NVARCHAR(50) NOT NULL
 )
-GO*/
+GO
 
 
 CREATE TABLE DB_OWNERS.TIPO_CUPON
@@ -155,7 +155,15 @@ CREATE TABLE DB_OWNERS.PRODUCTO(
 	cod_producto nvarchar(50) PRIMARY KEY,
 	nombre nvarchar(50) NOT NULL,
 	descripcion nvarchar(255) NOT NULL,
-	precio_unitario decimal(18,2) NOT NULL
+)
+GO
+
+DROP TABLE DB_OWNERS.PRODUCTO_POR_LOCAL
+CREATE TABLE DB_OWNERS.PRODUCTO_POR_LOCAL(
+	cod_producto nvarchar(50) NOT NULL,---FK,
+	id_local int NOT NULL,---FK
+	precio_unitario decimal(18,2) NOT NULL,
+	PRIMARY KEY(cod_producto, id_local)
 )
 GO
 
@@ -200,7 +208,7 @@ GO
 
 CREATE TABLE DB_OWNERS.RECLAMO
 (
-	nro_reclamo INT IDENTITY (1,1) PRIMARY KEY,
+	nro_reclamo INT PRIMARY KEY,
 	id_usuario INT NOT NULL, --FK
 	id_pedido INT NOT NULL, --FK
 	id_tipo_reclamo INT NOT NULL,  --FK
