@@ -537,6 +537,57 @@ BEGIN
 END
 GO
 
+--RECLAMOS
+
+IF EXISTS (SELECT * FROM sys.objects WHERE name = 'migrar_reclamos')
+DROP PROCEDURE DB_OWNERS.migrar_reclamos
+GO
+CREATE PROCEDURE DB_OWNERS.migrar_reclamos AS
+BEGIN
+	DELETE FROM DB_OWNERS.RECLAMO -- Usar para evitar duplicar entradas
+	INSERT INTO DB_OWNERS.RECLAMO
+	SELECT DISTINCT 
+		m.RECLAMO_NRO,
+		U.id_usuario,
+		P.id_pedido,
+		TR.id_tipo_reclamo,
+		E.id_estado,
+		O.id_operador,
+		S.id_solucion,
+		m.RECLAMO_FECHA,
+		m.RECLAMO_DESCRIPCION,
+		m.RECLAMO_CALIFICACION,
+		m.RECLAMO_FECHA_SOLUCION
+	FROM gd_esquema.Maestra m
+	JOIN DB_OWNERS.USUARIO U ON U.dni = m.USUARIO_DNI
+	JOIN DB_OWNERS.PEDIDO P ON p.nro_pedido = m.PEDIDO_NRO AND P.id_usuario = U.id_usuario
+	JOIN DB_OWNERS.TIPO_RECLAMO TR ON TR.descripcion = m.RECLAMO_TIPO
+	JOIN DB_OWNERS.ESTADO E ON E.estado = m.RECLAMO_ESTADO
+	JOIN DB_OWNERS.OPERADOR O ON O.dni = m.OPERADOR_RECLAMO_DNI
+	JOIN DB_OWNERS.SOLUCION S ON S.descripcion = m.RECLAMO_SOLUCION
+	WHERE m.RECLAMO_NRO IS NOT NULL 
+END
+GO
+
+IF EXISTS (SELECT * FROM sys.objects WHERE name = 'migrar_cupones_reclamo')
+DROP PROCEDURE DB_OWNERS.migrar_cupones_reclamo
+GO
+CREATE PROCEDURE DB_OWNERS.migrar_cupones_reclamo AS
+BEGIN
+	DELETE FROM DB_OWNERS.CUPON_RECLAMO -- Usar para evitar duplicar entradas
+		DBCC CHECKIDENT ('DB_OWNERS.CUPON_RECLAMO', RESEED, 0) -- Usar para evitar duplicar entradas
+	INSERT INTO DB_OWNERS.CUPON_RECLAMO
+	SELECT DISTINCT 
+		R.nro_reclamo,
+		C.id_nro_cupon
+	FROM gd_esquema.Maestra m
+	JOIN DB_OWNERS.RECLAMO R ON R.nro_reclamo = m.RECLAMO_NRO
+	JOIN DB_OWNERS.USUARIO U ON U.dni = M.USUARIO_DNI
+	JOIN DB_OWNERS.CUPON C ON C.nro_cupon = m.CUPON_RECLAMO_NRO AND C.id_usuario = U.id_usuario
+	WHERE m.CUPON_RECLAMO_NRO IS NOT NULL AND CUPON_NRO IS NULL
+END
+GO
+
 --ENVIO PAQUETES
 CREATE PROCEDURE DB_OWNERS.migrar_tipo_paquete AS
 BEGIN
@@ -630,9 +681,15 @@ END
 GO
 
 
+IF EXISTS (SELECT * FROM sys.objects WHERE name = 'migrar_envio')
+DROP PROCEDURE DB_OWNERS.migrar_envio
+GO
 CREATE PROCEDURE DB_OWNERS.migrar_envio
 AS BEGIN
+	DELETE FROM DB_OWNERS.ENVIO -- Usar para evitar duplicar entradas
+		DBCC CHECKIDENT ('DB_OWNERS.ENVIO', RESEED, 0) -- Usar para evitar duplicar entradas
 	INSERT INTO DB_OWNERS.ENVIO
+	/*55642 filas*/
 	SELECT DISTINCT 
 		r.id_repartidor,
 		m.ENVIO_MENSAJERIA_TIEMPO_ESTIMADO,
@@ -641,11 +698,13 @@ AS BEGIN
 	FROM gd_esquema.Maestra m
 	JOIN DB_OWNERS.REPARTIDOR R ON R.nombre = m.REPARTIDOR_NOMBRE and R.apellido = m.REPARTIDOR_APELLIDO and R.dni = m.REPARTIDOR_DNI
 	WHERE 
+		m.PEDIDO_NRO IS NULL and
 		m.ENVIO_MENSAJERIA_NRO IS NOT NULL and
 		m.ENVIO_MENSAJERIA_TIEMPO_ESTIMADO IS NOT NULL and
 		m.ENVIO_MENSAJERIA_PROPINA IS NOT NULL and
 		m.ENVIO_MENSAJERIA_PRECIO_ENVIO IS NOT NULL
 	INSERT INTO DB_OWNERS.ENVIO
+	/*59447 pedidos correcto*/
 	SELECT DISTINCT 
 		r.id_repartidor,
 		m.PEDIDO_TIEMPO_ESTIMADO_ENTREGA,
@@ -655,6 +714,7 @@ AS BEGIN
 	JOIN DB_OWNERS.REPARTIDOR R ON R.nombre = m.REPARTIDOR_NOMBRE and R.apellido = m.REPARTIDOR_APELLIDO and R.dni = m.REPARTIDOR_DNI
 	WHERE 
 		m.ENVIO_MENSAJERIA_NRO IS NULL and
+		m.PEDIDO_NRO IS NOT NULL AND
 		m.PEDIDO_TIEMPO_ESTIMADO_ENTREGA IS NOT NULL and
 		m.PEDIDO_PROPINA IS NOT NULL and
 		m.PEDIDO_PRECIO_ENVIO IS NOT NULL
@@ -821,6 +881,26 @@ END
 GO
 
 
+IF EXISTS (SELECT * FROM sys.objects WHERE name = 'migrar_direcciones_por_usuario')
+DROP PROCEDURE DB_OWNERS.migrar_direcciones_por_usuario
+GO
+CREATE PROCEDURE DB_OWNERS.migrar_direcciones_por_usuario AS
+BEGIN
+	DELETE FROM DB_OWNERS.DIRECCION_POR_USUARIO -- Usar para evitar duplicar entradas
+	INSERT INTO DB_OWNERS.DIRECCION_POR_USUARIO
+	SELECT DISTINCT 
+		U.id_usuario,
+		D.id_direccion,
+		m.DIRECCION_USUARIO_NOMBRE
+	FROM gd_esquema.Maestra m
+	JOIN DB_OWNERS.USUARIO U ON U.dni = m.USUARIO_DNI
+	JOIN DB_OWNERS.DIRECCION D ON D.calle_numero = m.DIRECCION_USUARIO_DIRECCION 
+	JOIN DB_OWNERS.LOCALIDAD L ON L.id_localidad = D.id_localidad and L.nombre = m.DIRECCION_USUARIO_LOCALIDAD
+	JOIN DB_OWNERS.PROVINCIA P ON P.id_provincia = L.id_provincia and P.nombre = m.DIRECCION_USUARIO_PROVINCIA
+	WHERE m.DIRECCION_USUARIO_NOMBRE IS NOT NULL
+END
+GO
+
 --TARJETAS
 IF EXISTS (SELECT * FROM sys.objects WHERE name = 'migrar_datos_tarjeta')
 DROP PROCEDURE DB_OWNERS.migrar_datos_tarjeta
@@ -863,43 +943,61 @@ END
 GO
 
 --PEDIDOS
-CREATE PROCEDURE DB_OWNERS.migrar_pedido
+
+/*funciona, tarda bastante....*/
+IF EXISTS (SELECT * FROM sys.objects WHERE name = 'migrar_pedidos')
+DROP PROCEDURE DB_OWNERS.migrar_pedidos
+GO
+CREATE PROCEDURE DB_OWNERS.migrar_pedidos
 AS BEGIN
+	DELETE FROM DB_OWNERS.PEDIDO -- Usar para evitar duplicar entradas
+	DBCC CHECKIDENT ('DB_OWNERS.PEDIDO', RESEED, 0) -- Usar para evitar duplicar entradas
 	INSERT INTO DB_OWNERS.PEDIDO
 	SELECT DISTINCT 
 		m.PEDIDO_NRO,
-		u.id_usuario,
-		l.id_local,
+		U.id_usuario,
+		LA.id_local,
 		m.PEDIDO_FECHA,
-		e.id_envio,
+		id_envio,
 		m.PEDIDO_OBSERV,
-		es.id_estado,
+		ES.id_estado,
 		m.PEDIDO_CALIFICACION,
 		m.PEDIDO_FECHA_ENTREGA,
 		m.PEDIDO_TARIFA_SERVICIO,
-		mp.id_medio_de_pago,
+		COALESCE(MP.id_medio_de_pago,'1') AS id_medio_pago,
 		m.PEDIDO_TOTAL_SERVICIO,
 		m.PEDIDO_TOTAL_CUPONES
 	FROM gd_esquema.Maestra m
-	JOIN DB_OWNERS.USUARIO u
-	ON u.dni = m.USUARIO_DNI AND u.fecha_nacimiento = m.USUARIO_FECHA_NAC
-	JOIN DB_OWNERS.LOCAL_ l
-	ON l.nombre = m.LOCAL_NOMBRE AND l.descripcion = m.LOCAL_DESCRIPCION
-	JOIN DB_OWNERS.ENVIO e
-	ON e.precio_envio = m.PEDIDO_PRECIO_ENVIO AND e.propina = m.PEDIDO_PROPINA AND e.tiempo_est_entrega = m.PEDIDO_TIEMPO_ESTIMADO_ENTREGA
-	JOIN DB_OWNERS.ESTADO es
-	ON es.estado = m.PEDIDO_ESTADO
-	JOIN DB_OWNERS.DATOS_TARJETA dt
-	ON dt.numero = m.MEDIO_PAGO_NRO_TARJETA
-	AND dt.id_usuario = u.id_usuario
-	JOIN DB_OWNERS.MEDIO_DE_PAGO mp
-	ON mp.id_datos_tarjeta = dt.id_datos_tarjeta
-	AND mp.medio = m.MEDIO_PAGO_TIPO
-	WHERE 
-	m.PEDIDO_NRO IS NOT NULL AND
-	m.PEDIDO_FECHA IS NOT NULL AND
-	m.PEDIDO_TARIFA_SERVICIO IS NOT NULL AND
-	m.PEDIDO_TOTAL_SERVICIO IS NOT NULL 
+	JOIN DB_OWNERS.USUARIO U ON U.dni = m.USUARIO_DNI
+	JOIN DB_OWNERS.DIRECCION D ON D.calle_numero = m.LOCAL_DIRECCION 
+	JOIN DB_OWNERS.LOCALIDAD L ON L.id_localidad = D.id_localidad and L.nombre = m.LOCAL_LOCALIDAD
+	JOIN DB_OWNERS.PROVINCIA P ON P.id_provincia = L.id_provincia and P.nombre = m.LOCAL_PROVINCIA
+	JOIN DB_OWNERS.LOCAL_ LA ON LA.nombre = m.LOCAL_NOMBRE and LA.id_direccion = D.id_direccion
+	JOIN DB_OWNERS.REPARTIDOR R ON R.dni = m.REPARTIDOR_DNI
+	JOIN DB_OWNERS.ENVIO E ON E.precio_envio = m.PEDIDO_PRECIO_ENVIO and E.tiempo_est_entrega = m.PEDIDO_TIEMPO_ESTIMADO_ENTREGA and E.propina = m.PEDIDO_PROPINA and E.id_repartidor = R.id_repartidor
+	JOIN DB_OWNERS.ESTADO ES ON ES.estado = m.PEDIDO_ESTADO
+	left JOIN DB_OWNERS.DATOS_TARJETA DT ON DT.tipo = m.MEDIO_PAGO_TIPO and DT.numero = m.MEDIO_PAGO_NRO_TARJETA
+	left JOIN DB_OWNERS.MEDIO_DE_PAGO MP ON MP.id_datos_tarjeta = DT.id_datos_tarjeta
+	WHERE m.PEDIDO_NRO IS NOT NULL
+END
+GO
+
+IF EXISTS (SELECT * FROM sys.objects WHERE name = 'migrar_cupones_usados')
+DROP PROCEDURE DB_OWNERS.migrar_cupones_usados
+GO
+CREATE PROCEDURE DB_OWNERS.migrar_cupones_usados AS
+BEGIN
+	DELETE FROM DB_OWNERS.CUPON_USADO -- Usar para evitar duplicar entradas
+		DBCC CHECKIDENT ('DB_OWNERS.CUPON_USADO', RESEED, 0) -- Usar para evitar duplicar entradas
+	INSERT INTO DB_OWNERS.CUPON_USADO
+	SELECT DISTINCT 
+		C.id_nro_cupon,
+		P.id_pedido
+	FROM gd_esquema.Maestra m
+	JOIN DB_OWNERS.PEDIDO P on p.nro_pedido = m.PEDIDO_NRO
+	JOIN DB_OWNERS.USUARIO U ON U.dni = M.USUARIO_DNI
+	JOIN DB_OWNERS.CUPON C ON C.nro_cupon = m.CUPON_NRO AND C.id_usuario = U.id_usuario
+	WHERE m.CUPON_NRO IS NOT NULL
 END
 GO
 
@@ -918,6 +1016,28 @@ AS BEGIN
 		m.PRODUCTO_LOCAL_DESCRIPCION,
 		m.PRODUCTO_LOCAL_PRECIO
 	FROM gd_esquema.Maestra m
+	WHERE m.PRODUCTO_LOCAL_CODIGO IS NOT NULL
+END
+GO
+
+IF EXISTS (SELECT * FROM sys.objects WHERE name = 'migrar_productos_por_local')
+DROP PROCEDURE DB_OWNERS.migrar_productos_por_local
+GO
+CREATE PROCEDURE DB_OWNERS.migrar_productos_por_local
+AS BEGIN
+	DELETE FROM DB_OWNERS.PRODUCTO_POR_LOCAL -- Usar para evitar duplicar entradas
+		--DBCC CHECKIDENT ('DB_OWNERS.PRODUCTO', RESEED, 0) -- Usar para evitar duplicar entradas
+	INSERT INTO DB_OWNERS.PRODUCTO_POR_LOCAL
+	SELECT DISTINCT 
+		PR.cod_producto,
+		LO.id_local,
+		M.PRODUCTO_LOCAL_PRECIO
+	FROM gd_esquema.Maestra m
+	JOIN DB_OWNERS.PRODUCTO PR ON PR.cod_producto = M.PRODUCTO_LOCAL_CODIGO
+	JOIN DB_OWNERS.DIRECCION D ON D.calle_numero = m.LOCAL_DIRECCION 
+	JOIN DB_OWNERS.LOCALIDAD L ON L.id_localidad = D.id_localidad and L.nombre = m.LOCAL_LOCALIDAD
+	JOIN DB_OWNERS.PROVINCIA P ON P.id_provincia = L.id_provincia and P.nombre = m.LOCAL_PROVINCIA
+	JOIN DB_OWNERS.LOCAL_ LO ON LO.nombre = M.LOCAL_NOMBRE
 	WHERE m.PRODUCTO_LOCAL_CODIGO IS NOT NULL
 END
 GO
@@ -988,8 +1108,16 @@ BEGIN TRANSACTION
 
 --PEDIDOS
 	EXECUTE DB_OWNERS.migrar_productos
-	EXECUTE DB_OWNERS.migrar_pedido
+	EXECUTE DB_OWNERS.migrar_pedidos
 	EXECUTE DB_OWNERS.migrar_items
+	EXECUTE DB_OWNERS.migrar_productos_por_local
+
+--RECLAMOS 2 --NECESITA PEDIDOS
+	EXECUTE DB_OWNERS.migrar_reclamos
+	EXECUTE DB_OWNERS.migrar_cupones_reclamo
+
+	EXECUTE DB_OWNERS.migrar_cupones_usados
+	EXECUTE DB_OWNERS.migrar_direcciones_por_usuario
 
 COMMIT TRANSACTION
 
