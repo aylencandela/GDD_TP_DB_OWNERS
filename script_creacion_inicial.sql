@@ -355,10 +355,10 @@ BEGIN
 	WHERE m.USUARIO_DNI is not null
 END
 GO
-
+/*
 select count(*) from db_owners.usuario 
 select count(*) from gd_esquema.Maestra 
-
+*/
 --CUPONES
 IF EXISTS (SELECT * FROM sys.objects WHERE name = 'migrar_tipo_cupon')
 DROP PROCEDURE DB_OWNERS.migrar_tipo_cupon
@@ -428,9 +428,10 @@ BEGIN
 	WHERE m.CUPON_RECLAMO_NRO IS NOT NULL
 END
 GO
+/*
 SELECT RECLAMO_NRO FROM gd_esquema.Maestra WHERE RECLAMO_NRO IS NOT NULL ORDER BY RECLAMO_NRO ASC
 
-SELECT * FROM db_owners.cupon order by nro_cupon
+SELECT * FROM db_owners.cupon order by nro_cupon*/
 
 --LOCALES
 IF EXISTS (SELECT * FROM sys.objects WHERE name = 'migrar_tipos_local')
@@ -1178,11 +1179,11 @@ BEGIN TRANSACTION
 	EXECUTE DB_OWNERS.migrar_usuario
 	EXECUTE DB_OWNERS.migrar_tipo_cupon
 	EXECUTE DB_OWNERS.migrar_cupon
-	select * FROM DB_OWNERS.TIPO_CUPON
+	/*select * FROM DB_OWNERS.TIPO_CUPON
 	select * FROM DB_OWNERS.USUARIO order by DNI asc
 	select * FROM DB_OWNERS.CUPON order by nro_cupon asc
 	select * from gd_esquema.Maestra WHERE CUPON_NRO = '11119211' or  CUPON_RECLAMO_NRO = '11119211'
-	select * from gd_esquema.Maestra WHERE CUPON_RECLAMO_NRO = '11119211'
+	select * from gd_esquema.Maestra WHERE CUPON_RECLAMO_NRO = '11119211'*/
 --TARJETAS
 	EXECUTE DB_OWNERS.migrar_datos_tarjeta
 	EXECUTE DB_OWNERS.migrar_medio_de_pago
