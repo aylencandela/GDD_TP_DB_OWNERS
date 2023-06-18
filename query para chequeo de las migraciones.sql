@@ -138,6 +138,9 @@ select * from gd_esquema.Maestra WHERE CUPON_RECLAMO_NRO = '11119211'
 select * FROM DB_OWNERS.PRODUCTO_POR_LOCAL 
 select distinct PRODUCTO_LOCAL_CODIGO FROM gd_esquema.Maestra where PRODUCTO_LOCAL_CODIGO is not null
 
+--trayecto --seguir chequeando trayecto
+select * FROM DB_OWNERS.TRAYECTO order by direccion_origen
+select ENVIO_MENSAJERIA_DIR_ORIG, ENVIO_MENSAJERIA_DIR_DEST, ENVIO_MENSAJERIA_KM FROM gd_esquema.Maestra where ENVIO_MENSAJERIA_NRO is not null order by ENVIO_MENSAJERIA_DIR_ORIG
 
 /*
 SELECT RECLAMO_NRO FROM gd_esquema.Maestra WHERE RECLAMO_NRO IS NOT NULL ORDER BY RECLAMO_NRO ASC
