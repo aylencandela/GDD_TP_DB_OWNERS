@@ -120,7 +120,6 @@ select DISTINCT OPERADOR_RECLAMO_DNI FROM gd_esquema.Maestra where OPERADOR_RECL
 select * FROM DB_OWNERS.LOCAL_ l join DB_OWNERS.DIRECCION d on d.id_direccion = l.id_direccion order by nombre 
 select distinct LOCAL_NOMBRE FROM gd_esquema.Maestra where local_nombre is not null
 
-
 --horarios de atencion
 select * FROM DB_OWNERS.HORARIO_ATENCION order by id_local asc
 select distinct HORARIO_LOCAL_HORA_APERTURA FROM gd_esquema.Maestra where HORARIO_LOCAL_HORA_APERTURA is not null
@@ -131,9 +130,13 @@ select u.nombre, d.calle_numero FROM DB_OWNERS.DIRECCION_POR_USUARIO du join DB_
 select distinct DIRECCION_USUARIO_NOMBRE, DIRECCION_USUARIO_DIRECCION FROM gd_esquema.Maestra where DIRECCION_USUARIO_NOMBRE is not null
 
 --cupones
-select * FROM DB_OWNERS.CUPON order by nro_cupon asc
+select * FROM DB_OWNERS.CUPON c join DB_OWNERS.USUARIO u on c.id_usuario = u.id_usuario  where u.nombre = 'POMPONIO' order by c.nro_cupon asc
 select * from gd_esquema.Maestra WHERE CUPON_NRO = '11119211' or  CUPON_RECLAMO_NRO = '11119211'
 select * from gd_esquema.Maestra WHERE CUPON_RECLAMO_NRO = '11119211'
+
+--producto_por_local
+select * FROM DB_OWNERS.PRODUCTO_POR_LOCAL 
+select distinct PRODUCTO_LOCAL_CODIGO FROM gd_esquema.Maestra where PRODUCTO_LOCAL_CODIGO is not null
 
 
 /*

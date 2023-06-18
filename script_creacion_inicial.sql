@@ -80,7 +80,7 @@ GO
 CREATE TABLE DB_OWNERS.TIPO_CUPON
 (
 	id_tipo_cupon INT IDENTITY(1,1) PRIMARY KEY,
-	descripcion NVARCHAR(255) NOT NULL
+	descripcion NVARCHAR(50) NOT NULL
 )
 GO
 
@@ -88,7 +88,7 @@ CREATE TABLE DB_OWNERS.CUPON
 (
 	id_nro_cupon INT IDENTITY(1,1) PRIMARY KEY,
 	id_usuario INT NOT NULL, ---FK
-	nro_cupon INT NOT NULL,
+	nro_cupon DECIMAL(18,0) NOT NULL,
 	monto DECIMAL(18,2) NOT NULL,
 	fecha_alta DATETIME2(3) NOT NULL,
 	fecha_vencimiento DATETIME2(3) NOT NULL,
@@ -140,8 +140,8 @@ GO
 
 CREATE TABLE DB_OWNERS.TRAYECTO(
 	id_trayecto INT IDENTITY(1,1) PRIMARY KEY,
-	id_direccion_origen int NOT NULL, --fk
-	id_direccion_destino int NOT NULL, --fk
+	direccion_origen nvarchar(255) NOT NULL,
+	direccion_destino nvarchar(255) NOT NULL,
 	distancia decimal(18,2) NOT NULL
 )
 GO
@@ -158,9 +158,9 @@ GO
 
 CREATE TABLE DB_OWNERS.PRODUCTO_POR_LOCAL(
 	cod_producto nvarchar(50) NOT NULL,---FK,
-	id_local int NOT NULL,---FK
+	id_local INT, ---FK
+	PRIMARY KEY(cod_producto, id_local),
 	precio_unitario decimal(18,2) NOT NULL,
-	PRIMARY KEY(cod_producto, id_local)
 )
 GO
 
@@ -858,30 +858,6 @@ BEGIN
 END
 GO
 
-IF EXISTS (SELECT * FROM sys.objects WHERE name = 'migrar_trayecto')
-DROP PROCEDURE DB_OWNERS.migrar_trayecto
-GO
-CREATE PROCEDURE DB_OWNERS.migrar_trayecto AS
-BEGIN
-	DELETE FROM DB_OWNERS.TRAYECTO -- Usar para evitar duplicar entradas
-		DBCC CHECKIDENT ('DB_OWNERS.TRAYECTO', RESEED, 0) -- Usar para evitar duplicar entradas
-	INSERT INTO DB_OWNERS.TRAYECTO
-	SELECT DISTINCT 
-		D.id_direccion,
-		d2.id_direccion,
-		m.ENVIO_MENSAJERIA_KM
-	FROM gd_esquema.Maestra m
-	JOIN DB_OWNERS.DIRECCION D ON D.calle_numero = m.ENVIO_MENSAJERIA_DIR_ORIG 
-	JOIN DB_OWNERS.LOCALIDAD L ON L.id_localidad = D.id_localidad and L.nombre = m.ENVIO_MENSAJERIA_LOCALIDAD
-	JOIN DB_OWNERS.PROVINCIA P ON P.id_provincia = L.id_provincia and P.nombre = m.ENVIO_MENSAJERIA_PROVINCIA
-	JOIN DB_OWNERS.DIRECCION d2 ON d2.calle_numero = m.ENVIO_MENSAJERIA_DIR_DEST
-	JOIN DB_OWNERS.LOCALIDAD L2 ON L2.id_localidad = d2.id_localidad and L2.nombre = m.ENVIO_MENSAJERIA_LOCALIDAD
-	JOIN DB_OWNERS.PROVINCIA P2 ON P2.id_provincia = L2.id_provincia and P2.nombre = m.ENVIO_MENSAJERIA_PROVINCIA
-	WHERE 
-		m.ENVIO_MENSAJERIA_KM IS NOT NULL
-END
-GO
-
 IF EXISTS (SELECT * FROM sys.objects WHERE name = 'migrar_productos_por_local')
 DROP PROCEDURE DB_OWNERS.migrar_productos_por_local
 GO
@@ -904,6 +880,25 @@ AS BEGIN
 END
 GO
 
+IF EXISTS (SELECT * FROM sys.objects WHERE name = 'migrar_trayecto')
+DROP PROCEDURE DB_OWNERS.migrar_trayecto
+GO
+CREATE PROCEDURE DB_OWNERS.migrar_trayecto AS
+BEGIN
+	DELETE FROM DB_OWNERS.TRAYECTO -- Usar para evitar duplicar entradas
+		DBCC CHECKIDENT ('DB_OWNERS.TRAYECTO', RESEED, 0) -- Usar para evitar duplicar entradas
+	INSERT INTO DB_OWNERS.TRAYECTO
+	SELECT DISTINCT 
+		m.ENVIO_MENSAJERIA_DIR_ORIG,
+		m.ENVIO_MENSAJERIA_DIR_DEST,
+		m.ENVIO_MENSAJERIA_KM
+	FROM gd_esquema.Maestra m
+	WHERE 
+		m.ENVIO_MENSAJERIA_DIR_ORIG IS NOT NULL and
+		m.ENVIO_MENSAJERIA_DIR_DEST IS NOT NULL and
+		m.ENVIO_MENSAJERIA_KM IS NOT NULL
+END
+GO
 
 
 
@@ -1214,10 +1209,11 @@ BEGIN TRANSACTION
 	EXECUTE DB_OWNERS.migrar_horarios_atencion 
 	EXECUTE DB_OWNERS.migrar_direcciones_por_usuario
 	EXECUTE DB_OWNERS.migrar_cupon --hasta aca tarda 12 seg
-
+	EXECUTE DB_OWNERS.migrar_productos_por_local --hasta aca tarda 20 seg
+	
 /*	
-EXECUTE DB_OWNERS.migrar_trayecto
-EXECUTE DB_OWNERS.migrar_productos_por_local
+
+
 	EXECUTE DB_OWNERS.migrar_repartidor
 	
 	EXECUTE DB_OWNERS.migrar_envio
@@ -1234,7 +1230,7 @@ EXECUTE DB_OWNERS.migrar_productos_por_local
 COMMIT TRANSACTION
 
 BEGIN TRANSACTION 
-	
+	EXECUTE DB_OWNERS.migrar_trayecto
 COMMIT TRANSACTION
 
 --------------------------------------
