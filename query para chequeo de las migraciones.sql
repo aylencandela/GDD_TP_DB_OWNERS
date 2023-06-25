@@ -1,42 +1,35 @@
 
 --ELIMINA TODAS LAS TABLAS CREADAS
-drop table DB_OWNERS.CUPON, 
-DB_OWNERS.CUPON_RECLAMO,
-DB_OWNERS.CUPON_USADO,
+drop table 
+DB_OWNERS.USUARIO, 
 DB_OWNERS.DATOS_TARJETA,
-DB_OWNERS.DIA_SEMANA,
 DB_OWNERS.DIRECCION,
-DB_OWNERS.DIRECCION_POR_USUARIO,
-DB_OWNERS.ENVIO,
-DB_OWNERS.ENVIO_MENSAJERIA,
-DB_OWNERS.ESTADO,
-DB_OWNERS.ESTADO_RECLAMO,
-DB_OWNERS.HORARIO_ATENCION,
-DB_OWNERS.ITEM,
-DB_OWNERS.LOCAL_,
 DB_OWNERS.LOCALIDAD,
+DB_OWNERS.PROVINCIA,
+DB_OWNERS.DIRECCION_POR_USUARIO,
+DB_OWNERS.TIPO_CUPON,
+DB_OWNERS.CUPON,
 DB_OWNERS.MEDIO_DE_PAGO,
-DB_OWNERS.MOVILIDAD,
-DB_OWNERS.OPERADOR,
-DB_OWNERS.PEDIDO,
+DB_OWNERS.LOCAL_,
+DB_OWNERS.TIPO_LOCAL,
+DB_OWNERS.REPARTIDOR,
 DB_OWNERS.PRODUCTO,
 DB_OWNERS.PRODUCTO_POR_LOCAL,
-DB_OWNERS.PROVINCIA,
+DB_OWNERS.ITEM,
+DB_OWNERS.ENVIO,
+DB_OWNERS.MOVILIDAD,
+DB_OWNERS.HORARIO_ATENCION,
+DB_OWNERS.DIA_SEMANA,
 DB_OWNERS.RECLAMO,
-DB_OWNERS.REPARTIDOR,
-DB_OWNERS.SOLUCION,
-DB_OWNERS.TIPO_CUPON,
-DB_OWNERS.TIPO_LOCAL,
-DB_OWNERS.TIPO_PAQUETE,
 DB_OWNERS.TIPO_RECLAMO,
-DB_OWNERS.TRAYECTO,
-DB_OWNERS.USUARIO
-
-
---CUENTA LAS FILAS DE UNA TABLA
-select count(*) from db_owners.usuario 
-select count(*) from gd_esquema.Maestra 
-
+DB_OWNERS.OPERADOR,
+DB_OWNERS.SOLUCION,
+DB_OWNERS.CUPON_RECLAMO,
+DB_OWNERS.TIPO_PAQUETE,
+DB_OWNERS.ENVIO_MENSAJERIA,
+DB_OWNERS.ESTADO,
+DB_OWNERS.CUPON_USADO,
+DB_OWNERS.PEDIDO
 
 
 --CHEQUEO TABLAS CREADAS POR SP
@@ -45,17 +38,13 @@ select count(*) from gd_esquema.Maestra
 select * FROM DB_OWNERS.USUARIO order by DNI asc
 select DISTINCT USUARIO_APELLIDO, USUARIO_DNI FROM gd_esquema.Maestra where USUARIO_APELLIDO is not null and USUARIO_DNI is not null
 
---estado_reclamo //ESTO TAL VEZ NO ES NECESARIO POR QUE "ESTADO", TIENE 2 ESTADOS, INCLUYENDO EL QUE TIENE ESTE
-select * FROM DB_OWNERS.ESTADO_RECLAMO
-select DISTINCT RECLAMO_ESTADO FROM gd_esquema.Maestra where RECLAMO_ESTADO is not null
-
 --tipo_reclamo
 select * FROM DB_OWNERS.TIPO_RECLAMO
 select DISTINCT RECLAMO_TIPO FROM gd_esquema.Maestra where RECLAMO_TIPO is not null
 
 --solucion_reclamo
-select * FROM DB_OWNERS.SOLUCION
-select DISTINCT RECLAMO_SOLUCION FROM gd_esquema.Maestra where RECLAMO_SOLUCION is not null
+select * FROM DB_OWNERS.SOLUCION order by fecha_solucion asc
+select DISTINCT RECLAMO_SOLUCION, RECLAMO_FECHA_SOLUCION FROM gd_esquema.Maestra where RECLAMO_NRO is not null AND RECLAMO_SOLUCION is not null AND RECLAMO_FECHA_SOLUCION is not null order by RECLAMO_FECHA_SOLUCION asc
 
 --tipo_cupon
 select * FROM DB_OWNERS.TIPO_CUPON
@@ -67,8 +56,9 @@ select DISTINCT REPARTIDOR_TIPO_MOVILIDAD FROM gd_esquema.Maestra where REPARTID
 
 --estado
 select * FROM DB_OWNERS.ESTADO
-select DISTINCT ENVIO_MENSAJERIA_ESTADO FROM gd_esquema.Maestra where ENVIO_MENSAJERIA_ESTADO is not null UNION
+select DISTINCT ENVIO_MENSAJERIA_ESTADO FROM gd_esquema.Maestra where ENVIO_MENSAJERIA_ESTADO is not null 
 select DISTINCT PEDIDO_ESTADO FROM gd_esquema.Maestra where PEDIDO_ESTADO is not null
+select DISTINCT RECLAMO_ESTADO FROM gd_esquema.Maestra where RECLAMO_ESTADO is not null
 
 --provincia
 select * FROM DB_OWNERS.PROVINCIA
@@ -96,7 +86,7 @@ select DISTINCT DIRECCION_USUARIO_LOCALIDAD FROM gd_esquema.Maestra where DIRECC
 select DISTINCT LOCAL_LOCALIDAD FROM gd_esquema.Maestra where LOCAL_LOCALIDAD is not null) 
 
 --datos_tarjeta
-select NUMERO FROM DB_OWNERS.DATOS_TARJETA ORDER BY NUMERO
+select * FROM DB_OWNERS.DATOS_TARJETA ORDER BY NUMERO
 select DISTINCT MEDIO_PAGO_NRO_TARJETA FROM gd_esquema.Maestra where MEDIO_PAGO_NRO_TARJETA is not null AND MEDIO_PAGO_TIPO != 'Efectivo' ORDER BY MEDIO_PAGO_NRO_TARJETA
 
 --medio_de_pago
@@ -138,18 +128,61 @@ select * from gd_esquema.Maestra WHERE CUPON_RECLAMO_NRO = '11119211'
 select * FROM DB_OWNERS.PRODUCTO_POR_LOCAL 
 select distinct PRODUCTO_LOCAL_CODIGO FROM gd_esquema.Maestra where PRODUCTO_LOCAL_CODIGO is not null
 
---trayecto --seguir chequeando trayecto
-select * FROM DB_OWNERS.TRAYECTO order by direccion_origen
-select ENVIO_MENSAJERIA_DIR_ORIG, ENVIO_MENSAJERIA_DIR_DEST, ENVIO_MENSAJERIA_KM FROM gd_esquema.Maestra where ENVIO_MENSAJERIA_NRO is not null order by ENVIO_MENSAJERIA_DIR_ORIG
+--repartidor
+select * FROM DB_OWNERS.REPARTIDOR
 
-/*
-SELECT RECLAMO_NRO FROM gd_esquema.Maestra WHERE RECLAMO_NRO IS NOT NULL ORDER BY RECLAMO_NRO ASC
-
-SELECT * FROM db_owners.cupon order by nro_cupon*/
-
---LOCALES
+--envio
+select E.TIEMPO_EST_ENTREGA, E.PROPINA, R.NOMBRE, R.APELLIDO FROM DB_OWNERS.ENVIO E JOIN DB_OWNERS.REPARTIDOR r ON R.ID_REPARTIDOR = E.ID_REPARTIDOR
 
 
+--envio mensajeria
+select * FROM DB_OWNERS.ENVIO_MENSAJERIA em JOIN DB_OWNERS.MEDIO_DE_PAGO u on u.id_medio_de_pago = em.id_medio_de_pago order by nro_mensajeria
+
+select * from gd_esquema.Maestra where ENVIO_MENSAJERIA_NRO is not null order by ENVIO_MENSAJERIA_NRO 
+
+--pedido
+select * FROM DB_OWNERS.PEDIDO em JOIN DB_OWNERS.MEDIO_DE_PAGO u on u.id_medio_de_pago = em.id_medio_de_pago JOIN DB_OWNERS.LOCAL_ l on l.id_local = em.id_local order by nro_pedido
+
+select * from gd_esquema.Maestra where PEDIDO_NRO is not null order by PEDIDO_NRO 
+
+--reclamo
+select * FROM DB_OWNERS.RECLAMO em 
+JOIN DB_OWNERS.USUARIO u on u.id_usuario = em.id_usuario 
+JOIN DB_OWNERS.PEDIDO p on p.id_pedido = em.id_pedido 
+JOIN DB_OWNERS.TIPO_RECLAMO tr on tr.id_tipo_reclamo = em.id_tipo_reclamo 
+JOIN DB_OWNERS.ESTADO e on e.id_estado = em.id_estado 
+JOIN DB_OWNERS.OPERADOR ep on ep.id_operador = em.id_operador
+JOIN DB_OWNERS.SOLUCION s on s.id_solucion = em.id_solucion
+order by em.nro_reclamo asc
+
+select * from gd_esquema.Maestra where RECLAMO_NRO is not null order by RECLAMO_NRO asc
+
+--cupon_reclamo
+select * from DB_OWNERS.CUPON_RECLAMO em
+JOIN DB_OWNERS.RECLAMO u on u.id_reclamo = em.id_reclamo 
+JOIN DB_OWNERS.CUPON p on p.id_nro_cupon = em.id_nro_cupon 
+order by nro_cupon
+
+select * from gd_esquema.Maestra where CUPON_RECLAMO_NRO IS NOT NULL AND CUPON_NRO IS NULL order by CUPON_RECLAMO_NRO
+
+--cupon_usado
+select * from DB_OWNERS.CUPON_USADO em
+JOIN DB_OWNERS.PEDIDO u on u.id_pedido = em.id_pedido 
+JOIN DB_OWNERS.CUPON p on p.id_nro_cupon = em.id_cupon 
+order by u.nro_pedido
+
+SELECT USUARIO_APELLIDO, ENVIO_MENSAJERIA_NRO, PEDIDO_NRO, CUPON_NRO, RECLAMO_NRO, CUPON_RECLAMO_NRO, OPERADOR_RECLAMO_DNI FROM gd_esquema.Maestra where ENVIO_MENSAJERIA_NRO is null order by PEDIDO_NRO
+
+--item
+select * from DB_OWNERS.ITEM 
 
 
 
+/*ESTO ES PARA ASIGNARLE A UN REPARTIDOR UNA LOCALIDAD
+envio mensajeria
+Debo buscar el repartidor, el nombre apellido etc de ese reparidor, fijarme donde fue la ultima entrega que hizo, y asignarle esa lolcaludad, para eso, necesito ver cualfue el envio_mensajeria_fecha_entrega ultimo, de ahi sacar la localidad de ese envio mensajeria
+
+
+envio pedido
+Debo buscar el repartidor, el nombre apellido etc de ese reparidor, fijarme donde fue la ultima entrega que hizo, y asignarle esa lolcaludad, para eso, necesito ver cualfue el pedido_fecha_entrega ultimo de ese repartidor, de ahi sacar la localidad de ese direccion usuario localidad	
+*/
