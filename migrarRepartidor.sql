@@ -1,0 +1,152 @@
+IF EXISTS (SELECT * FROM sys.objects WHERE name = 'migrar_locales')
+DROP PROCEDURE DB_OWNERS.migrar_locales
+GO
+CREATE PROCEDURE DB_OWNERS.migrar_locales AS
+BEGIN
+	DELETE FROM DB_OWNERS.LOCAL_ -- Usar para evitar duplicar entradas
+		DBCC CHECKIDENT ('DB_OWNERS.LOCAL_', RESEED, 0) -- Usar para evitar duplicar entradas
+	INSERT INTO DB_OWNERS.LOCAL_(
+		nombre,
+		descripcion,
+		id_direccion,
+		id_tipo_local
+	)
+	SELECT DISTINCT 
+		m.LOCAL_NOMBRE,
+		m.LOCAL_DESCRIPCION,
+		D.id_direccion,
+		CL.id_tipo_local+CL.id_categoria as [Categoria Local]
+	FROM gd_esquema.Maestra m 
+	JOIN DB_OWNERS.DIRECCION D ON D.calle_numero = m.LOCAL_DIRECCION 
+	JOIN DB_OWNERS.LOCALIDAD L ON L.id_localidad = D.id_localidad and L.nombre = m.LOCAL_LOCALIDAD
+	JOIN DB_OWNERS.PROVINCIA P ON P.id_provincia = L.id_provincia and P.nombre = m.LOCAL_PROVINCIA
+	JOIN DB_OWNERS.TIPO_LOCAL TL ON TL.descripcion = m.LOCAL_TIPO
+	JOIN DB_OWNERS.CATEGORIAS C ON  (TL.id_tipo_local = '1' AND C.id_categoria = SUBSTRING(m.LOCAL_DESCRIPCION,21,3)%3) or 
+									(TL.id_tipo_local = '2' AND C.id_categoria = SUBSTRING(m.LOCAL_DESCRIPCION,21,3)%3 +3)
+	JOIN DB_OWNERS.CATEGORIA_LOCAL CL ON CL.id_tipo_local = tl.id_tipo_local and CL.id_categoria = C.id_categoria
+	WHERE m.LOCAL_NOMBRE IS NOT NULL 
+
+END
+GO
+
+IF EXISTS (SELECT * FROM sys.objects WHERE name = 'migrar_categorias_local')
+DROP PROCEDURE DB_OWNERS.migrar_categorias_local
+GO
+CREATE PROCEDURE DB_OWNERS.migrar_categorias_local AS
+BEGIN
+	DELETE FROM DB_OWNERS.CATEGORIA_LOCAL -- Usar para evitar duplicar entradas
+		DBCC CHECKIDENT ('DB_OWNERS.CATEGORIA_LOCAL', RESEED, 0) -- Usar para evitar duplicar entradas
+	INSERT INTO DB_OWNERS.CATEGORIA_LOCAL
+	SELECT distinct
+	TL.id_tipo_local,
+	C.id_categoria
+	FROM gd_esquema.Maestra m 
+	JOIN DB_OWNERS.TIPO_LOCAL TL ON TL.descripcion = m.LOCAL_TIPO
+	JOIN DB_OWNERS.CATEGORIAS C ON  (TL.id_tipo_local = '1' AND C.id_categoria = SUBSTRING(m.LOCAL_DESCRIPCION,21,3)%3) or 
+									(TL.id_tipo_local = '2' AND C.id_categoria = SUBSTRING(m.LOCAL_DESCRIPCION,21,3)%3 +3)
+	WHERE m.LOCAL_NOMBRE IS NOT NULL 
+END
+GO
+
+
+
+
+
+IF EXISTS (SELECT * FROM sys.objects WHERE name = 'migrar_repartidor')
+DROP PROCEDURE DB_OWNERS.migrar_repartidor
+GO
+CREATE PROCEDURE DB_OWNERS.migrar_repartidor
+AS BEGIN
+	DELETE FROM DB_OWNERS.REPARTIDOR -- Usar para evitar duplicar entradas
+		DBCC CHECKIDENT ('DB_OWNERS.REPARTIDOR', RESEED, 0) -- Usar para evitar duplicar entradas
+	DECLARE @FECHA datetime2(3)
+	DECLARE @MOVILIDAD int
+	DECLARE @LOCALIDAD int
+	DECLARE @NOMBRE nvarchar(255)
+	DECLARE @APELLIDO nvarchar(255)
+	DECLARE @DIRECCION nvarchar(255)
+	DECLARE @DNI decimal(18,0)
+	DECLARE @TELEFONO decimal(18,0)
+	DECLARE @EMAIL nvarchar(255)
+	DECLARE @FECHA_NAC date
+	DECLARE @FECHA_AUX date
+	DECLARE @DNI_AUX decimal(18,0)
+
+
+	DECLARE C_REPARTIDOR_ULTIMAS_LOCALIDADES CURSOR FOR
+		SELECT distinct 
+			m.id_movilidad,
+			l.id_localidad,
+			t1.REPARTIDOR_NOMBRE,
+			t1.REPARTIDOR_APELLIDO,
+			t1.REPARTIDOR_DIRECION,
+			t1.REPARTIDOR_DNI,
+			t1.REPARTIDOR_TELEFONO,
+			t1.REPARTIDOR_EMAIL,
+			t1.REPARTIDOR_FECHA_NAC,
+			t1.PEDIDO_FECHA as fecha
+			FROM gd_esquema.Maestra t1
+			INNER JOIN (
+			  SELECT m.REPARTIDOR_DNI,  MAX(PEDIDO_FECHA) AS fecha_maxima
+			  FROM gd_esquema.Maestra m
+			  GROUP BY REPARTIDOR_DNI
+			) t2 ON t1.REPARTIDOR_DNI = t2.REPARTIDOR_DNI AND t1.PEDIDO_FECHA = t2.fecha_maxima
+			JOIN DB_OWNERS.LOCALIDAD L ON L.nombre = t1.LOCAL_LOCALIDAD
+			JOIN DB_OWNERS.PROVINCIA P ON P.nombre = t1.LOCAL_PROVINCIA and p.id_provincia = l.id_provincia
+			JOIN DB_OWNERS.MOVILIDAD M ON M.vehiculo = t1.REPARTIDOR_TIPO_MOVILIDAD
+			WHERE t1.PEDIDO_FECHA = t2.fecha_maxima 
+
+			union
+			SELECT distinct 
+					m.id_movilidad,
+					l.id_localidad,
+					t1.REPARTIDOR_NOMBRE,
+					t1.REPARTIDOR_APELLIDO,
+					t1.REPARTIDOR_DIRECION,
+					t1.REPARTIDOR_DNI,
+					t1.REPARTIDOR_TELEFONO,
+					t1.REPARTIDOR_EMAIL,
+					t1.REPARTIDOR_FECHA_NAC,
+					t1.ENVIO_MENSAJERIA_FECHA as fecha
+			FROM gd_esquema.Maestra t1
+			INNER JOIN (
+			  SELECT m.REPARTIDOR_DNI,  MAX(ENVIO_MENSAJERIA_FECHA) AS fecha_maxima
+			  FROM gd_esquema.Maestra m
+			  GROUP BY REPARTIDOR_DNI
+			) t2 ON t1.REPARTIDOR_DNI = t2.REPARTIDOR_DNI AND t1.ENVIO_MENSAJERIA_FECHA = t2.fecha_maxima
+			JOIN DB_OWNERS.LOCALIDAD L ON L.nombre = t1.ENVIO_MENSAJERIA_LOCALIDAD
+			JOIN DB_OWNERS.PROVINCIA P ON P.nombre = t1.ENVIO_MENSAJERIA_PROVINCIA and p.id_provincia = l.id_provincia
+			JOIN DB_OWNERS.MOVILIDAD M ON M.vehiculo = t1.REPARTIDOR_TIPO_MOVILIDAD
+			WHERE t1.ENVIO_MENSAJERIA_FECHA = t2.fecha_maxima
+		order by REPARTIDOR_DNI, fecha desc
+	
+	OPEN C_REPARTIDOR_ULTIMAS_LOCALIDADES
+
+	FETCH NEXT FROM C_REPARTIDOR_ULTIMAS_LOCALIDADES INTO @MOVILIDAD, @LOCALIDAD, @NOMBRE, @APELLIDO, @DIRECCION, @DNI, @TELEFONO, @EMAIL, @FECHA_NAC, @FECHA_AUX
+
+	WHILE @@FETCH_STATUS = 0
+	BEGIN
+		IF @DNI_aux IS NULL
+		BEGIN
+			INSERT INTO DB_OWNERS.REPARTIDOR 
+				VALUES ( @MOVILIDAD, @LOCALIDAD, @NOMBRE, @APELLIDO, @DIRECCION, @DNI, @TELEFONO, @EMAIL, @FECHA_NAC)
+			set @DNI_aux = @DNI
+		END
+		ELSE
+		BEGIN
+			IF @DNI != @DNI_aux
+			BEGIN
+				INSERT INTO DB_OWNERS.REPARTIDOR 
+					VALUES ( @MOVILIDAD, @LOCALIDAD, @NOMBRE, @APELLIDO, @DIRECCION, @DNI, @TELEFONO, @EMAIL, @FECHA_NAC)
+				set @DNI_aux = @DNI
+			END
+		END
+
+	FETCH NEXT FROM C_REPARTIDOR_ULTIMAS_LOCALIDADES INTO @MOVILIDAD, @LOCALIDAD, @NOMBRE, @APELLIDO, @DIRECCION, @DNI, @TELEFONO, @EMAIL, @FECHA_NAC, @FECHA_AUX
+	
+	END
+	
+	CLOSE C_REPARTIDOR_ULTIMAS_LOCALIDADES
+	DEALLOCATE C_REPARTIDOR_ULTIMAS_LOCALIDADES
+END
+GO	
