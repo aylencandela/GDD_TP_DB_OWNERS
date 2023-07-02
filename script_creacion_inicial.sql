@@ -101,16 +101,18 @@ CREATE TABLE DB_OWNERS.MEDIO_DE_PAGO
 )
 GO
 
+drop table DB_OWNERS.LOCAL_
 CREATE TABLE DB_OWNERS.LOCAL_
 (
 	id_local INT IDENTITY(1,1) PRIMARY KEY,
 	nombre NVARCHAR(100) NOT NULL,
 	descripcion NVARCHAR(255) NOT NULL,
 	id_direccion INT NOT NULL, --FK
-	id_tipo_local INT NOT NULL --FK
+	id_categoria_local INT NOT NULL --FK
 )
 GO
 
+drop table DB_OWNERS.CATEGORIAS
 CREATE TABLE DB_OWNERS.CATEGORIAS
 (
 	id_categoria INT IDENTITY(1,1) PRIMARY KEY,
@@ -118,6 +120,7 @@ CREATE TABLE DB_OWNERS.CATEGORIAS
 )
 GO
 
+drop table DB_OWNERS.TIPO_LOCAL
 CREATE TABLE DB_OWNERS.TIPO_LOCAL
 (
 	id_tipo_local INT IDENTITY(1,1) PRIMARY KEY,
@@ -125,11 +128,12 @@ CREATE TABLE DB_OWNERS.TIPO_LOCAL
 )
 GO
 
+drop table DB_OWNERS.CATEGORIA_LOCAL
 CREATE TABLE DB_OWNERS.CATEGORIA_LOCAL
 (
+	id_categoria_local INT IDENTITY(1,1) PRIMARY KEY,
 	id_tipo_local int NOT NULL, --fk
 	id_categoria int NOT NULL, --fk
-	PRIMARY KEY (id_tipo_local,id_categoria)
 )
 GO
 
@@ -487,12 +491,11 @@ BEGIN
 	C.id_categoria
 	FROM gd_esquema.Maestra m 
 	JOIN DB_OWNERS.TIPO_LOCAL TL ON TL.descripcion = m.LOCAL_TIPO
-	JOIN DB_OWNERS.CATEGORIAS C ON  (TL.id_tipo_local = '1' AND C.id_categoria = SUBSTRING(m.LOCAL_DESCRIPCION,21,3)%3) or 
-									(TL.id_tipo_local = '2' AND C.id_categoria = SUBSTRING(m.LOCAL_DESCRIPCION,21,3)%3 +3)
+	left JOIN DB_OWNERS.CATEGORIAS C ON  (TL.id_tipo_local = '1' AND C.id_categoria = SUBSTRING(m.LOCAL_DESCRIPCION,21,3)%3 +1) or 
+									(TL.id_tipo_local = '2' AND C.id_categoria = SUBSTRING(m.LOCAL_DESCRIPCION,21,3)%3 +4)
 	WHERE m.LOCAL_NOMBRE IS NOT NULL 
 END
 GO
-
 
 IF EXISTS (SELECT * FROM sys.objects WHERE name = 'migrar_provincias')
 DROP PROCEDURE DB_OWNERS.migrar_provincias
@@ -731,25 +734,26 @@ BEGIN
 		nombre,
 		descripcion,
 		id_direccion,
-		id_tipo_local
+		id_categoria_local
 	)
 	SELECT DISTINCT 
 		m.LOCAL_NOMBRE,
 		m.LOCAL_DESCRIPCION,
 		D.id_direccion,
-		CL.id_tipo_local+CL.id_categoria as [Categoria Local]
+		CL.id_categoria_local
 	FROM gd_esquema.Maestra m 
 	JOIN DB_OWNERS.DIRECCION D ON D.calle_numero = m.LOCAL_DIRECCION 
 	JOIN DB_OWNERS.LOCALIDAD L ON L.id_localidad = D.id_localidad and L.nombre = m.LOCAL_LOCALIDAD
 	JOIN DB_OWNERS.PROVINCIA P ON P.id_provincia = L.id_provincia and P.nombre = m.LOCAL_PROVINCIA
 	JOIN DB_OWNERS.TIPO_LOCAL TL ON TL.descripcion = m.LOCAL_TIPO
-	JOIN DB_OWNERS.CATEGORIAS C ON  (TL.id_tipo_local = '1' AND C.id_categoria = SUBSTRING(m.LOCAL_DESCRIPCION,21,3)%3) or 
-									(TL.id_tipo_local = '2' AND C.id_categoria = SUBSTRING(m.LOCAL_DESCRIPCION,21,3)%3 +3)
+	JOIN DB_OWNERS.CATEGORIAS C ON  (TL.id_tipo_local = '1' AND C.id_categoria = SUBSTRING(m.LOCAL_DESCRIPCION,21,3)%3 +1) or 
+									(TL.id_tipo_local = '2' AND C.id_categoria = SUBSTRING(m.LOCAL_DESCRIPCION,21,3)%3 +4)
 	JOIN DB_OWNERS.CATEGORIA_LOCAL CL ON CL.id_tipo_local = tl.id_tipo_local and CL.id_categoria = C.id_categoria
 	WHERE m.LOCAL_NOMBRE IS NOT NULL 
 
 END
 GO
+
 
 IF EXISTS (SELECT * FROM sys.objects WHERE name = 'migrar_horarios_atencion')
 DROP PROCEDURE DB_OWNERS.migrar_horarios_atencion
@@ -1116,8 +1120,7 @@ AS BEGIN
 		m.PEDIDO_TOTAL_CUPONES
 	FROM gd_esquema.Maestra m
 	JOIN DB_OWNERS.USUARIO U ON U.dni = m.USUARIO_DNI AND u.fecha_nacimiento = m.USUARIO_FECHA_NAC
-	JOIN DB_OWNERS.TIPO_LOCAL tp ON tp.descripcion = m.LOCAL_TIPO
-	JOIN DB_OWNERS.LOCAL_ LA ON LA.nombre = m.LOCAL_NOMBRE and LA.descripcion = m.LOCAL_DESCRIPCION and la.id_tipo_local = tp.id_tipo_local-- and LA.id_direccion = D.id_direccion
+	JOIN DB_OWNERS.LOCAL_ LA ON LA.nombre = m.LOCAL_NOMBRE and LA.descripcion = m.LOCAL_DESCRIPCION --and la.id_tipo_local = tp.id_tipo_local and LA.id_direccion = D.id_direccion
 	JOIN DB_OWNERS.REPARTIDOR R ON R.dni = m.REPARTIDOR_DNI and r.apellido = m.REPARTIDOR_APELLIDO and r.dni = m.REPARTIDOR_DNI
 	JOIN DB_OWNERS.ENVIO E ON E.precio_envio = m.PEDIDO_PRECIO_ENVIO and E.tiempo_est_entrega = m.PEDIDO_TIEMPO_ESTIMADO_ENTREGA and E.propina = m.PEDIDO_PROPINA and E.id_repartidor = R.id_repartidor
 	JOIN DB_OWNERS.ESTADO ES ON ES.estado = m.PEDIDO_ESTADO
