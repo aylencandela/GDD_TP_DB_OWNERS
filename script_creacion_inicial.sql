@@ -485,8 +485,8 @@ BEGIN
 	C.id_categoria
 	FROM gd_esquema.Maestra m 
 	JOIN DB_OWNERS.TIPO_LOCAL TL ON TL.descripcion = m.LOCAL_TIPO
-	left JOIN DB_OWNERS.CATEGORIAS C ON  (TL.id_tipo_local = '0' AND C.id_categoria = SUBSTRING(m.LOCAL_DESCRIPCION,21,3)%3 ) or 
-									(TL.id_tipo_local = '1' AND C.id_categoria = SUBSTRING(m.LOCAL_DESCRIPCION,21,3)%3 +3)
+	left JOIN DB_OWNERS.CATEGORIAS C ON  (TL.id_tipo_local = (select TOP 1 id_tipo_local from DB_OWNERS.TIPO_LOCAL ORDER BY id_tipo_local ASC)AND C.id_categoria = SUBSTRING(m.LOCAL_DESCRIPCION,21,3)%3 ) or 
+									(TL.id_tipo_local = (select TOP 1 id_tipo_local from DB_OWNERS.TIPO_LOCAL ORDER BY id_tipo_local DESC) AND C.id_categoria = SUBSTRING(m.LOCAL_DESCRIPCION,21,3)%3 +3)
 	WHERE m.LOCAL_NOMBRE IS NOT NULL 
 END
 GO
@@ -778,8 +778,8 @@ BEGIN
 	JOIN DB_OWNERS.LOCALIDAD L ON L.id_localidad = D.id_localidad and L.nombre = m.LOCAL_LOCALIDAD
 	JOIN DB_OWNERS.PROVINCIA P ON P.id_provincia = L.id_provincia and P.nombre = m.LOCAL_PROVINCIA
 	JOIN DB_OWNERS.TIPO_LOCAL TL ON TL.descripcion = m.LOCAL_TIPO
-	JOIN DB_OWNERS.CATEGORIAS C ON  (TL.id_tipo_local = '0' AND C.id_categoria = SUBSTRING(m.LOCAL_DESCRIPCION,21,3)%3 ) or 
-									(TL.id_tipo_local = '1' AND C.id_categoria = SUBSTRING(m.LOCAL_DESCRIPCION,21,3)%3 +3)
+	JOIN DB_OWNERS.CATEGORIAS C ON  (TL.id_tipo_local = (select TOP 1 id_tipo_local from DB_OWNERS.TIPO_LOCAL ORDER BY id_tipo_local ASC) AND C.id_categoria = SUBSTRING(m.LOCAL_DESCRIPCION,21,3)%3 ) or 
+									(TL.id_tipo_local = (select TOP 1 id_tipo_local from DB_OWNERS.TIPO_LOCAL ORDER BY id_tipo_local DESC) AND C.id_categoria = SUBSTRING(m.LOCAL_DESCRIPCION,21,3)%3 +3)
 	JOIN DB_OWNERS.CATEGORIA_LOCAL CL ON CL.id_tipo_local = tl.id_tipo_local and CL.id_categoria = C.id_categoria
 	WHERE m.LOCAL_NOMBRE IS NOT NULL 
 
