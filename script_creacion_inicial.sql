@@ -270,7 +270,7 @@ CREATE TABLE DB_OWNERS.TIPO_PAQUETE
 	precio DECIMAL(18,2) NOT NULL,
 )
 GO
-
+drop table DB_OWNERS.ENVIO_MENSAJERIA
 CREATE TABLE DB_OWNERS.ENVIO_MENSAJERIA
 (
 	id_envio_mensajeria INT IDENTITY(1,1) PRIMARY KEY,
@@ -280,7 +280,10 @@ CREATE TABLE DB_OWNERS.ENVIO_MENSAJERIA
 	id_tipo_paquete INT NOT NULL, --fk
 	precio_total DECIMAL(18,2) NOT NULL,
 	observaciones NVARCHAR(255),
-	id_envio INT NOT NULL, --fk
+	id_repartidor INT NOT NULL, --fk
+	tiempo_est_entrega decimal(18,2) NOT NULL,
+	propina decimal(18,2) NOT NULL,
+	precio_envio decimal(18,2) NOT NULL,
 	calificacion DECIMAL(18,0),
 	fecha_hora_entrega DATETIME2(3),
 	id_estado INT NOT NULL, --fk
@@ -308,6 +311,7 @@ CREATE TABLE DB_OWNERS.CUPON_USADO
 )
 GO
 
+DROP TABLE DB_OWNERS.PEDIDO
 CREATE TABLE DB_OWNERS.PEDIDO 
 (
 	id_pedido INT IDENTITY (1,1) PRIMARY KEY,
@@ -315,7 +319,10 @@ CREATE TABLE DB_OWNERS.PEDIDO
 	id_usuario INT NOT NULL, -- (fk)
 	id_local INT NOT NULL, -- (fk)
 	fecha DATETIME2(3) NOT NULL,
-	id_envio INT NOT NULL, -- (fk)
+	id_repartidor INT NOT NULL, -- (fk)
+	tiempo_est_entrega decimal(18,2) NOT NULL,
+	propina decimal(18,2) NOT NULL,
+	precio_envio decimal(18,2) NOT NULL,
 	observaciones NVARCHAR(255),
 	id_estado INT NOT NULL, -- (fk)
 	calificacion DECIMAL(18,0),
@@ -1009,24 +1016,7 @@ CREATE PROCEDURE DB_OWNERS.migrar_envio_mensajeria
 AS BEGIN
 	DELETE FROM DB_OWNERS.ENVIO_MENSAJERIA -- Usar para evitar duplicar entradas
 		DBCC CHECKIDENT ('DB_OWNERS.ENVIO_MENSAJERIA', RESEED, 0) -- Usar para evitar duplicar entradas
-	INSERT INTO DB_OWNERS.ENVIO_MENSAJERIA(
-	nro_mensajeria,
-	id_usuario, 
-	fecha_hora,
-	id_tipo_paquete,
-	precio_total,
-	observaciones,
-	id_envio,
-	calificacion,
-	fecha_hora_entrega,
-	id_estado, 
-	valor_asegurado,
-	precio_seguro,
-	id_medio_de_pago,
-	direccion_origen,
-	direccion_destino,
-	distancia
-	)
+	INSERT INTO DB_OWNERS.ENVIO_MENSAJERIA
 	SELECT DISTINCT 
 		m.ENVIO_MENSAJERIA_NRO,
 		u.id_usuario,
@@ -1034,51 +1024,33 @@ AS BEGIN
 		tp.id_tipo_paquete,
 		m.ENVIO_MENSAJERIA_TOTAL,
 		m.ENVIO_MENSAJERIA_OBSERV,
-		e.id_envio,
+		r.id_repartidor,
+		m.ENVIO_MENSAJERIA_TIEMPO_ESTIMADO,
+		m.ENVIO_MENSAJERIA_PROPINA,
+		m.ENVIO_MENSAJERIA_PRECIO_ENVIO,
 		m.ENVIO_MENSAJERIA_CALIFICACION,
 		m.ENVIO_MENSAJERIA_FECHA_ENTREGA,
 		es.id_estado,
 		m.ENVIO_MENSAJERIA_VALOR_ASEGURADO,
 		m.ENVIO_MENSAJERIA_PRECIO_SEGURO,
-		mp.id_medio_de_pago,
+		COALESCE(MP.id_medio_de_pago,'1') AS id_medio_pago,
 		m.ENVIO_MENSAJERIA_DIR_ORIG,
 		m.ENVIO_MENSAJERIA_DIR_DEST,
 		m.ENVIO_MENSAJERIA_KM
 	FROM gd_esquema.Maestra m
 	JOIN DB_OWNERS.USUARIO u ON u.dni = m.USUARIO_DNI AND u.fecha_nacimiento = m.USUARIO_FECHA_NAC
 	JOIN DB_OWNERS.TIPO_PAQUETE tp ON tp.descripcion = m.PAQUETE_TIPO
-	JOIN DB_OWNERS.ENVIO e ON e.precio_envio = m.ENVIO_MENSAJERIA_PRECIO_ENVIO AND e.propina = m.ENVIO_MENSAJERIA_PROPINA AND e.tiempo_est_entrega = m.ENVIO_MENSAJERIA_TIEMPO_ESTIMADO
 	JOIN DB_OWNERS.ESTADO es ON es.estado = m.ENVIO_MENSAJERIA_ESTADO
-	JOIN DB_OWNERS.MEDIO_DE_PAGO mp ON m.MEDIO_PAGO_TIPO = mp.medio and mp.id_datos_tarjeta is NULL
+	JOIN DB_OWNERS.REPARTIDOR R ON R.dni = m.REPARTIDOR_DNI
+	left JOIN DB_OWNERS.DATOS_TARJETA DT ON DT.tipo = m.MEDIO_PAGO_TIPO and DT.numero = m.MEDIO_PAGO_NRO_TARJETA
+	left JOIN DB_OWNERS.MEDIO_DE_PAGO MP ON MP.id_datos_tarjeta = DT.id_datos_tarjeta
 	WHERE 
-		m.ENVIO_MENSAJERIA_NRO IS NOT NULL
-	UNION
-	SELECT DISTINCT 
-		m.ENVIO_MENSAJERIA_NRO,
-		u.id_usuario,
-		m.ENVIO_MENSAJERIA_FECHA,
-		tp.id_tipo_paquete,
-		m.ENVIO_MENSAJERIA_TOTAL,
-		m.ENVIO_MENSAJERIA_OBSERV,
-		e.id_envio,
-		m.ENVIO_MENSAJERIA_CALIFICACION,
-		m.ENVIO_MENSAJERIA_FECHA_ENTREGA,
-		es.id_estado,
-		m.ENVIO_MENSAJERIA_VALOR_ASEGURADO,
-		m.ENVIO_MENSAJERIA_PRECIO_SEGURO,
-		mp.id_medio_de_pago,
-		m.ENVIO_MENSAJERIA_DIR_ORIG,
-		m.ENVIO_MENSAJERIA_DIR_DEST,
-		m.ENVIO_MENSAJERIA_KM
-	FROM gd_esquema.Maestra m
-	JOIN DB_OWNERS.USUARIO u ON u.dni = m.USUARIO_DNI AND u.fecha_nacimiento = m.USUARIO_FECHA_NAC
-	JOIN DB_OWNERS.TIPO_PAQUETE tp ON tp.descripcion = m.PAQUETE_TIPO
-	JOIN DB_OWNERS.ENVIO e ON e.precio_envio = m.ENVIO_MENSAJERIA_PRECIO_ENVIO AND e.propina = m.ENVIO_MENSAJERIA_PROPINA AND e.tiempo_est_entrega = m.ENVIO_MENSAJERIA_TIEMPO_ESTIMADO
-	JOIN DB_OWNERS.ESTADO es ON es.estado = m.ENVIO_MENSAJERIA_ESTADO
-	JOIN DB_OWNERS.MEDIO_DE_PAGO mp ON m.MEDIO_PAGO_TIPO = mp.medio and mp.id_datos_tarjeta is NOT NULL
-	JOIN DB_OWNERS.DATOS_TARJETA DT ON DT.tipo = m.MEDIO_PAGO_TIPO and DT.numero = m.MEDIO_PAGO_NRO_TARJETA and mp.id_datos_tarjeta = dt.id_datos_tarjeta
-	WHERE 
-		m.ENVIO_MENSAJERIA_NRO IS NOT NULL
+		m.ENVIO_MENSAJERIA_NRO IS NOT NULL and
+		m.ENVIO_MENSAJERIA_FECHA IS NOT NULL and
+		m.ENVIO_MENSAJERIA_TOTAL IS NOT NULL and
+		m.ENVIO_MENSAJERIA_VALOR_ASEGURADO IS NOT NULL and
+		m.ENVIO_MENSAJERIA_PRECIO_SEGURO IS NOT NULL and
+		m.ENVIO_MENSAJERIA_PRECIO_ENVIO IS NOT NULL
 END
 GO
 
@@ -1089,67 +1061,33 @@ CREATE PROCEDURE DB_OWNERS.migrar_pedidos
 AS BEGIN
 	DELETE FROM DB_OWNERS.PEDIDO -- Usar para evitar duplicar entradas
 	DBCC CHECKIDENT ('DB_OWNERS.PEDIDO', RESEED, 0) -- Usar para evitar duplicar entradas
-	INSERT INTO DB_OWNERS.PEDIDO(
-	nro_pedido,
-	id_usuario, 
-	id_local, 
-	fecha,
-	id_envio,
-	observaciones,
-	id_estado,
-	calificacion,
-	fecha_hora_entrega,
-	tarifa_servicio,
-	id_medio_de_pago, 
-	precio_total_servicio,
-	total_cupones
-	)
 	SELECT DISTINCT 
 		m.PEDIDO_NRO,
 		U.id_usuario,
 		LA.id_local,
 		m.PEDIDO_FECHA,
-		id_envio,
+		R.id_repartidor,
+		m.PEDIDO_TIEMPO_ESTIMADO_ENTREGA,
+		m.PEDIDO_PROPINA,
+		m.PEDIDO_PRECIO_ENVIO,
 		m.PEDIDO_OBSERV,
 		ES.id_estado,
 		m.PEDIDO_CALIFICACION,
 		m.PEDIDO_FECHA_ENTREGA,
 		m.PEDIDO_TARIFA_SERVICIO,
-		mp.id_medio_de_pago,
+		COALESCE(MP.id_medio_de_pago,'1') AS id_medio_pago,
 		m.PEDIDO_TOTAL_SERVICIO,
 		m.PEDIDO_TOTAL_CUPONES
 	FROM gd_esquema.Maestra m
-	JOIN DB_OWNERS.USUARIO U ON U.dni = m.USUARIO_DNI AND u.fecha_nacimiento = m.USUARIO_FECHA_NAC
-	JOIN DB_OWNERS.LOCAL_ LA ON LA.nombre = m.LOCAL_NOMBRE and LA.descripcion = m.LOCAL_DESCRIPCION --and la.id_tipo_local = tp.id_tipo_local and LA.id_direccion = D.id_direccion
-	JOIN DB_OWNERS.REPARTIDOR R ON R.dni = m.REPARTIDOR_DNI and r.apellido = m.REPARTIDOR_APELLIDO and r.dni = m.REPARTIDOR_DNI
-	JOIN DB_OWNERS.ENVIO E ON E.precio_envio = m.PEDIDO_PRECIO_ENVIO and E.tiempo_est_entrega = m.PEDIDO_TIEMPO_ESTIMADO_ENTREGA and E.propina = m.PEDIDO_PROPINA and E.id_repartidor = R.id_repartidor
+	JOIN DB_OWNERS.USUARIO U ON U.dni = m.USUARIO_DNI
+	JOIN DB_OWNERS.DIRECCION D ON D.calle_numero = m.LOCAL_DIRECCION 
+	JOIN DB_OWNERS.LOCALIDAD L ON L.id_localidad = D.id_localidad and L.nombre = m.LOCAL_LOCALIDAD
+	JOIN DB_OWNERS.PROVINCIA P ON P.id_provincia = L.id_provincia and P.nombre = m.LOCAL_PROVINCIA
+	JOIN DB_OWNERS.LOCAL_ LA ON LA.nombre = m.LOCAL_NOMBRE and LA.id_direccion = D.id_direccion
+	JOIN DB_OWNERS.REPARTIDOR R ON R.dni = m.REPARTIDOR_DNI
 	JOIN DB_OWNERS.ESTADO ES ON ES.estado = m.PEDIDO_ESTADO
-	JOIN DB_OWNERS.MEDIO_DE_PAGO mp ON m.MEDIO_PAGO_TIPO = mp.medio and mp.id_datos_tarjeta is NULL
-	WHERE m.PEDIDO_NRO IS NOT NULL
-	UNION
-	SELECT DISTINCT 
-		m.PEDIDO_NRO,
-		U.id_usuario,
-		LA.id_local,
-		m.PEDIDO_FECHA,
-		id_envio,
-		m.PEDIDO_OBSERV,
-		ES.id_estado,
-		m.PEDIDO_CALIFICACION,
-		m.PEDIDO_FECHA_ENTREGA,
-		m.PEDIDO_TARIFA_SERVICIO,
-		mp.id_medio_de_pago,
-		m.PEDIDO_TOTAL_SERVICIO,
-		m.PEDIDO_TOTAL_CUPONES
-	FROM gd_esquema.Maestra m
-	JOIN DB_OWNERS.USUARIO U ON U.dni = m.USUARIO_DNI AND u.fecha_nacimiento = m.USUARIO_FECHA_NAC
-	JOIN DB_OWNERS.TIPO_LOCAL tp ON tp.descripcion = m.LOCAL_TIPO
-	JOIN DB_OWNERS.LOCAL_ LA ON LA.nombre = m.LOCAL_NOMBRE and LA.descripcion = m.LOCAL_DESCRIPCION and la.id_tipo_local = tp.id_tipo_local-- and LA.id_direccion = D.id_direccion
-	JOIN DB_OWNERS.REPARTIDOR R ON R.dni = m.REPARTIDOR_DNI and r.apellido = m.REPARTIDOR_APELLIDO and r.dni = m.REPARTIDOR_DNI
-	JOIN DB_OWNERS.ENVIO E ON E.precio_envio = m.PEDIDO_PRECIO_ENVIO and E.tiempo_est_entrega = m.PEDIDO_TIEMPO_ESTIMADO_ENTREGA and E.propina = m.PEDIDO_PROPINA and E.id_repartidor = R.id_repartidor
-	JOIN DB_OWNERS.ESTADO ES ON ES.estado = m.PEDIDO_ESTADO
-	JOIN DB_OWNERS.MEDIO_DE_PAGO mp ON m.MEDIO_PAGO_TIPO = mp.medio and mp.id_datos_tarjeta is NOT NULL
-	JOIN DB_OWNERS.DATOS_TARJETA DT ON DT.tipo = m.MEDIO_PAGO_TIPO and DT.numero = m.MEDIO_PAGO_NRO_TARJETA and mp.id_datos_tarjeta = dt.id_datos_tarjeta
+	left JOIN DB_OWNERS.DATOS_TARJETA DT ON DT.tipo = m.MEDIO_PAGO_TIPO and DT.numero = m.MEDIO_PAGO_NRO_TARJETA
+	left JOIN DB_OWNERS.MEDIO_DE_PAGO MP ON MP.id_datos_tarjeta = DT.id_datos_tarjeta
 	WHERE m.PEDIDO_NRO IS NOT NULL
 END
 GO
