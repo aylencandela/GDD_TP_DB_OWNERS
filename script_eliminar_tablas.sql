@@ -40,9 +40,7 @@ DROP PROCEDURE DB_OWNERS.migrar_usuarios;
 DROP PROCEDURE DB_OWNERS.migrar_tipo_cupon
 DROP PROCEDURE DB_OWNERS.migrar_cupon
 
-DROP PROCEDURE DB_OWNERS.migrar_bi_envios_mensajeria
-DROP PROCEDURE DB_OWNERS.migrar_bi_pedidos
-DROP PROCEDURE DB_OWNERS.migrar_bi_reclamos
+
 
 
 
@@ -97,4 +95,21 @@ DROP TABLE DB_OWNERS.BI_TIEMPO;
 DROP TABLE DB_OWNERS.BI_TIPO_MOVILIDAD;
 DROP TABLE DB_OWNERS.BI_TIPO_PAQUETE;
 DROP TABLE DB_OWNERS.BI_TIPO_RECLAMO;
+
+DROP PROCEDURE DB_OWNERS.migrar_bi_envios_mensajeria
+DROP PROCEDURE DB_OWNERS.migrar_bi_pedidos
+DROP PROCEDURE DB_OWNERS.migrar_bi_reclamos
+
+DROP VIEW vista_pedidos_mayor_dia_y_fh_por_localidad_categoria_mes
+DROP VIEW vista_pedidos_monto_no_cobrado_por_local_dia_fh
+DROP VIEW vista_promedio_coste_envio_por_localidad_mes
+DROP VIEW vista_desvio_promedio_tiempo_entrega_por_movilidad_dia_fh
+DROP VIEW vista_monto_cupones_por_mes_reu
+DROP VIEW vista_calificacion_por_mes_local
+DROP VIEW vista_pedidos_mensajeria_entregados_por_re_repartidor_localidad
+DROP VIEW vista_promedio_valor_asegurado_por_mes_tipopaquete
+DROP VIEW vista_reclamos_recibidos_por_mes_local_dia_rh
+DROP VIEW vista_tiempo_resolucion_reclamo_por_mes_tiporeclamo_reo
+DROP VIEW vista_monto_cupones_reclamo_por_mes
+
 
