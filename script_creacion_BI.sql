@@ -37,6 +37,8 @@ CREATE TABLE DB_OWNERS.BI_PEDIDOS
 	porcentaje_entregado DECIMAL(18,0) NOT NULL,
 )
 GO
+
+drop table DB_OWNERS.BI_ENVIO_MENSAJERIA 
 CREATE TABLE DB_OWNERS.BI_ENVIO_MENSAJERIA 
 (
 	id_envio_mensajeria INT IDENTITY (1,1) PRIMARY KEY,
@@ -48,6 +50,7 @@ CREATE TABLE DB_OWNERS.BI_ENVIO_MENSAJERIA
 	id_medio_pago INT NOT NULL, --fk
 	id_tipo_paquete INT NOT NULL, --fk
 	id_estado_envio INT NOT NULL, --fk
+	id_tipo_movilidad INT NOT NULL, --fk
 	promedio_desvio DECIMAL(18,0) NOT NULL,
 	porcentaje_entregado DECIMAL(18,0) NOT NULL,
 	promedio_valor_asegurado DECIMAL(18,2) NOT NULL
@@ -249,17 +252,6 @@ SELECT * FROM DB_OWNERS.BI_TIPO_RECLAMO
 --------------------------------------------------------------------------------
 --------------------------------------------------------------------------------
 
-SELECT * FROM DB_OWNERS.RECLAMO R
-JOIN DB_OWNERS.SOLUCION S ON S.id_solucion = R.id_solucion
-LEFT JOIN DB_OWNERS.CUPON_RECLAMO CR ON CR.id_reclamo = R.id_reclamo
-LEFT JOIN DB_OWNERS.CUPON C ON C.id_nro_cupon = CR.id_cupon_reclamo
-
-select R.fecha, S.fecha_solucion, C.monto
-from DB_OWNERS.RECLAMO R
-JOIN DB_OWNERS.SOLUCION S ON S.id_solucion = R.id_solucion
-LEFT JOIN DB_OWNERS.CUPON_RECLAMO CR ON CR.id_reclamo = R.id_reclamo
-LEFT JOIN DB_OWNERS.CUPON C ON C.id_nro_cupon = CR.id_cupon_reclamo
-
 IF EXISTS (SELECT * FROM sys.objects WHERE name = 'migrar_bi_reclamos')
 DROP PROCEDURE DB_OWNERS.migrar_bi_reclamos
 GO
@@ -286,14 +278,6 @@ DELETE FROM DB_OWNERS.BI_RECLAMOS -- Usar para evitar duplicar entradas
 		COUNT(*) AS [Cantidad de reclamos],
 		AVG(DATEDIFF(MINUTE, R.fecha, S.fecha_solucion)) AS [Tiempo de resolucion promedio],
 		SUM(C.monto) AS [Monto generado por cupones]
-
-		/*(SELECT BT.id_tiempo FROM DB_OWNERS.BI_TIEMPO BT WHERE año = YEAR(R.FECHA) AND mes = MONTH(R.FECHA)),
-		(SELECT BD.id_dia FROM DB_OWNERS.BI_DIA BD WHERE FORMAT(R.FECHA, 'dddd') = BD.nombre),
-		(SELECT BRH.id_rango_horario FROM DB_OWNERS.BI_RANGO_HORARIO BRH WHERE DATEPART(HOUR, R.FECHA) >= BRH.hora_desde AND DATEPART(HOUR, R.FECHA) < BRH.hora_hasta ),
-		(SELECT BRE.id_rango_etario FROM DB_OWNERS.BI_RANGO_ETARIO BRE WHERE DATEDIFF(year, U.fecha_nacimiento , GETDATE()) >= BRE.edad_desde AND DATEDIFF(year, U.fecha_nacimiento, GETDATE()) < BRE.edad_hasta ),
-		(SELECT BTR.id_tipo_reclamo FROM DB_OWNERS.BI_TIPO_RECLAMO BTR WHERE BTR.id_tipo_reclamo = TR.id_tipo_reclamo ),*/
-		/*R.fecha ,S.fecha_solucion,C.monto*/
-		
 		FROM DB_OWNERS.RECLAMO R
 		JOIN DB_OWNERS.SOLUCION S ON S.id_solucion = R.id_solucion
 		JOIN DB_OWNERS.USUARIO U ON U.id_usuario = R.id_usuario
@@ -308,27 +292,6 @@ DELETE FROM DB_OWNERS.BI_RECLAMOS -- Usar para evitar duplicar entradas
 END
 GO
 
-
-
-/*
-	id_pedido INT IDENTITY (1,1) PRIMARY KEY,
-	id_tiempo INT NOT NULL, --fk
-	id_dia INT NOT NULL, --fk
-	id_rango_horario INT NOT NULL, --fk
-	id_localidad INT NOT NULL, --fk
-	id_rango_etario INT NOT NULL, --fk
-	id_medio_pago INT NOT NULL, --fk
-	id_local INT NOT NULL, --fk
-	id_categoria_local INT NOT NULL, --fk
-	id_tipo_movilidad INT NOT NULL, --fk
-	cantidad_pedidos DECIMAL(18,0) NOT NULL,
-	pedidos_cancelados DECIMAL(18,0) NOT NULL,
-	promedio_envio DECIMAL(18,2) NOT NULL,
-	promedio_desvio DECIMAL(18,0) NOT NULL,
-	monto_total_cupones DECIMAL(18,2) NOT NULL,
-	promedio_calificacion DECIMAL(18,0) NOT NULL,
-	porcentaje_entregado DECIMAL(18,0) NOT NULL,
-*/
 
 IF EXISTS (SELECT * FROM sys.objects WHERE name = 'migrar_bi_pedidos')
 DROP PROCEDURE DB_OWNERS.migrar_bi_pedidos
@@ -356,14 +319,23 @@ DELETE FROM DB_OWNERS.BI_PEDIDOS -- Usar para evitar duplicar entradas
 		porcentaje_entregado
 	)
 	SELECT 
-		*
-		/*BT.id_tiempo,
+		BT.id_tiempo,
 		BD.id_dia,
 		BRH.id_rango_horario,
 		BLI.id_localidad,
-		BRE.id_rango_etario*/
+		BRE.id_rango_etario,
+		BMP.id_medio_pago,
+		BL.id_local,
+		BCL.id_categoria_local,
+		BTM.id_tipo_movilidad,
+		COUNT(*) AS [Pedidos],
+		SUM(CASE WHEN e.id_estado = '0' THEN 1 ELSE 0 END) AS [Pedidos Cancelados],
+		AVG(P.precio_total_servicio) AS [Valor promedio del envio],
+		AVG( ABS( p.tiempo_est_entrega - DATEDIFF(MINUTE, P.fecha, P.fecha_hora_entrega) ) ) AS [Desvio promedio en tiempo de entrega],
+		ISNULL(SUM(c.monto),0) AS [Monto Cupones],
+		AVG(p.calificacion) AS [Promedio Calificaciones],
+		(SUM(CASE WHEN e.id_estado = '1' THEN 1 ELSE 0 END) *100) / COUNT(*) AS [Porcentaje entregado]
 		FROM DB_OWNERS.PEDIDO P
-		
 		JOIN DB_OWNERS.ESTADO E ON E.id_estado = P.id_estado
 		LEFT JOIN DB_OWNERS.CUPON_USADO CU ON CU.id_pedido = P.id_pedido
 		LEFT JOIN DB_OWNERS.CUPON C ON C.id_nro_cupon = CU.id_cupon
@@ -376,6 +348,8 @@ DELETE FROM DB_OWNERS.BI_PEDIDOS -- Usar para evitar duplicar entradas
 		JOIN DB_OWNERS.CATEGORIA_LOCAL CL ON CL.id_categoria_local = L.id_categoria_local
 		JOIN DB_OWNERS.TIPO_LOCAL TL ON TL.id_tipo_local = CL.id_tipo_local
 		JOIN DB_OWNERS.CATEGORIAS CA ON CA.id_categoria = CL.id_categoria
+		JOIN DB_OWNERS.REPARTIDOR R ON R.id_repartidor = P.id_repartidor
+		JOIN DB_OWNERS.MOVILIDAD M ON M.id_movilidad = R.id_movilidad
 		JOIN DB_OWNERS.BI_TIEMPO BT ON año = YEAR(P.fecha) AND mes = MONTH(P.fecha)
 		JOIN DB_OWNERS.BI_DIA BD ON FORMAT(P.fecha, 'dddd') = BD.nombre
 		JOIN DB_OWNERS.BI_RANGO_HORARIO BRH ON DATEPART(HOUR, P.fecha) >= BRH.hora_desde AND DATEPART(HOUR, P.fecha) < BRH.hora_hasta
@@ -384,21 +358,67 @@ DELETE FROM DB_OWNERS.BI_PEDIDOS -- Usar para evitar duplicar entradas
 		JOIN DB_OWNERS.BI_MEDIO_DE_PAGO BMP ON BMP.detalle = MP.medio
 		JOIN DB_OWNERS.BI_LOCAL BL ON BL.nombre = L.nombre
 		JOIN DB_OWNERS.BI_CATEGORIA_LOCAL BCL ON BCL.tipo_local = TL.descripcion AND BCL.categoria = CA.descripcion
-		JOIN DB_OWNERS.BI_TIPO_RECLAMO BTR ON BTR.id_tipo_reclamo = R.id_tipo_reclamo
-		GROUP BY BT.id_tiempo, BD.id_dia,BRH.id_rango_horario,BLI.id_localidad, BRE.id_rango_etario, BTR.id_tipo_reclamo
-
-
-		SELECT * FROM DB_OWNERS.PEDIDO
-		SELECT * FROM DB_OWNERS.ENVIO_MENSAJERIA
-		select * from DB_OWNERS.ENVIO
-
-		GROUP BY BT.id_tiempo, BD.id_dia,BRH.id_rango_horario, BRE.id_rango_etario, BTR.id_tipo_reclamo
+		JOIN DB_OWNERS.BI_TIPO_MOVILIDAD BTM ON BTM.descripcion = M.vehiculo
+		GROUP BY BT.id_tiempo, BD.id_dia,BRH.id_rango_horario,BLI.id_localidad, BRE.id_rango_etario, BMP.id_medio_pago, BL.id_local, BCL.id_categoria_local, BTM.id_tipo_movilidad
 END
 GO
 
 
-
-
+IF EXISTS (SELECT * FROM sys.objects WHERE name = 'migrar_bi_envios_mensajeria')
+DROP PROCEDURE DB_OWNERS.migrar_bi_envios_mensajeria
+GO
+CREATE PROCEDURE DB_OWNERS.migrar_bi_envios_mensajeria AS
+BEGIN
+DELETE FROM DB_OWNERS.BI_ENVIO_MENSAJERIA -- Usar para evitar duplicar entradas
+	DBCC CHECKIDENT ('DB_OWNERS.BI_ENVIO_MENSAJERIA', RESEED, 0) -- Usar para evitar duplicar entradas
+	INSERT INTO DB_OWNERS.BI_ENVIO_MENSAJERIA(
+		id_tiempo,
+		id_dia,
+		id_rango_horario,
+		id_localidad,
+		id_rango_etario,
+		id_medio_pago,
+		id_tipo_paquete,
+		id_estado_envio,
+		id_tipo_movilidad,
+		promedio_desvio,
+		porcentaje_entregado,
+		promedio_valor_asegurado
+	)
+	SELECT 
+		BT.id_tiempo,
+		BD.id_dia,
+		BRH.id_rango_horario,
+		BLI.id_localidad,
+		BRE.id_rango_etario,
+		BMP.id_medio_pago,
+		BTP.id_tipo_paquete,
+		BEE.id_estado_envio,
+		BTM.id_tipo_movilidad,
+		AVG( ABS( EM.tiempo_est_entrega - DATEDIFF(MINUTE, EM.fecha_hora, EM.fecha_hora_entrega) ) ) AS [Desvio promedio en tiempo de entrega],
+		(SUM(CASE WHEN e.id_estado = '1' THEN 1 ELSE 0 END) *100) / COUNT(*) AS [Porcentaje entregado],
+		AVG(EM.valor_asegurado)
+		FROM DB_OWNERS.ENVIO_MENSAJERIA EM
+		JOIN DB_OWNERS.ESTADO E ON E.id_estado = EM.id_estado
+		JOIN DB_OWNERS.REPARTIDOR R ON R.id_repartidor = EM.id_repartidor
+		JOIN DB_OWNERS.LOCALIDAD LI ON LI.id_localidad = R.id_localidad
+		JOIN DB_OWNERS.PROVINCIA PR ON PR.id_provincia = LI.id_provincia
+		JOIN DB_OWNERS.USUARIO U ON U.id_usuario = EM.id_usuario
+		JOIN DB_OWNERS.MEDIO_DE_PAGO MP ON MP.id_medio_de_pago = EM.id_medio_de_pago
+		JOIN DB_OWNERS.MOVILIDAD M ON M.id_movilidad = R.id_movilidad
+		JOIN DB_OWNERS.TIPO_PAQUETE TP ON TP.id_tipo_paquete = EM.id_tipo_paquete
+		JOIN DB_OWNERS.BI_TIEMPO BT ON año = YEAR(EM.fecha_hora) AND mes = MONTH(EM.fecha_hora)
+		JOIN DB_OWNERS.BI_DIA BD ON FORMAT(EM.fecha_hora, 'dddd') = BD.nombre
+		JOIN DB_OWNERS.BI_RANGO_HORARIO BRH ON DATEPART(HOUR, EM.fecha_hora) >= BRH.hora_desde AND DATEPART(HOUR, EM.fecha_hora) < BRH.hora_hasta
+		JOIN DB_OWNERS.BI_LOCALIDAD BLI ON BLI.provicia = PR.nombre AND BLI.localidad = LI.nombre
+		JOIN DB_OWNERS.BI_RANGO_ETARIO BRE ON DATEDIFF(year, U.fecha_nacimiento , GETDATE()) >= BRE.edad_desde AND DATEDIFF(year, U.fecha_nacimiento, GETDATE()) < BRE.edad_hasta
+		JOIN DB_OWNERS.BI_MEDIO_DE_PAGO BMP ON BMP.detalle = MP.medio
+		JOIN DB_OWNERS.BI_TIPO_PAQUETE BTP ON BTP.descripcion = TP.descripcion
+		JOIN DB_OWNERS.BI_ESTADO_ENVIO BEE ON BEE.descripcion = E.estado
+		JOIN DB_OWNERS.BI_TIPO_MOVILIDAD BTM ON BTM.descripcion = M.vehiculo
+		GROUP BY BT.id_tiempo, BD.id_dia,BRH.id_rango_horario,BLI.id_localidad, BRE.id_rango_etario, BMP.id_medio_pago, BTP.id_tipo_paquete, BEE.id_estado_envio, BTM.id_tipo_movilidad
+END
+GO
 
 
 
