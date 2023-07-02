@@ -1020,7 +1020,7 @@ AS BEGIN
 		es.id_estado,
 		m.ENVIO_MENSAJERIA_VALOR_ASEGURADO,
 		m.ENVIO_MENSAJERIA_PRECIO_SEGURO,
-		COALESCE(MP.id_medio_de_pago,'1') AS id_medio_pago,
+		COALESCE(MP.id_medio_de_pago,'0') AS id_medio_pago,
 		m.ENVIO_MENSAJERIA_DIR_ORIG,
 		m.ENVIO_MENSAJERIA_DIR_DEST,
 		m.ENVIO_MENSAJERIA_KM
@@ -1063,7 +1063,7 @@ AS BEGIN
 		m.PEDIDO_CALIFICACION,
 		m.PEDIDO_FECHA_ENTREGA,
 		m.PEDIDO_TARIFA_SERVICIO,
-		COALESCE(MP.id_medio_de_pago,'1') AS id_medio_pago,
+		COALESCE(MP.id_medio_de_pago,'0') AS id_medio_pago,
 		m.PEDIDO_TOTAL_SERVICIO,
 		m.PEDIDO_TOTAL_CUPONES
 	FROM gd_esquema.Maestra m
