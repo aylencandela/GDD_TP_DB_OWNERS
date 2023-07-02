@@ -101,7 +101,6 @@ CREATE TABLE DB_OWNERS.MEDIO_DE_PAGO
 )
 GO
 
-drop table DB_OWNERS.LOCAL_
 CREATE TABLE DB_OWNERS.LOCAL_
 (
 	id_local INT IDENTITY(1,1) PRIMARY KEY,
@@ -112,7 +111,6 @@ CREATE TABLE DB_OWNERS.LOCAL_
 )
 GO
 
-drop table DB_OWNERS.CATEGORIAS
 CREATE TABLE DB_OWNERS.CATEGORIAS
 (
 	id_categoria INT IDENTITY(1,1) PRIMARY KEY,
@@ -120,7 +118,6 @@ CREATE TABLE DB_OWNERS.CATEGORIAS
 )
 GO
 
-drop table DB_OWNERS.TIPO_LOCAL
 CREATE TABLE DB_OWNERS.TIPO_LOCAL
 (
 	id_tipo_local INT IDENTITY(1,1) PRIMARY KEY,
@@ -128,7 +125,6 @@ CREATE TABLE DB_OWNERS.TIPO_LOCAL
 )
 GO
 
-drop table DB_OWNERS.CATEGORIA_LOCAL
 CREATE TABLE DB_OWNERS.CATEGORIA_LOCAL
 (
 	id_categoria_local INT IDENTITY(1,1) PRIMARY KEY,
@@ -174,15 +170,6 @@ CREATE TABLE DB_OWNERS.ITEM(
 	id_pedido int NOT NULL, --fk
 	cantidad decimal(18,0) NOT NULL,
 	precio_total decimal(18,2) NOT NULL
-)
-GO
-
-CREATE TABLE DB_OWNERS.ENVIO(
-	id_envio INT IDENTITY(1,1) PRIMARY KEY,
-	id_repartidor int NOT NULL, --fk
-	tiempo_est_entrega decimal(18,2) NOT NULL,
-	propina decimal(18,2) NOT NULL,
-	precio_envio decimal(18,2) NOT NULL
 )
 GO
 
@@ -311,7 +298,7 @@ CREATE TABLE DB_OWNERS.CUPON_USADO
 )
 GO
 
-DROP TABLE DB_OWNERS.PEDIDO
+--DROP TABLE DB_OWNERS.PEDIDO
 CREATE TABLE DB_OWNERS.PEDIDO 
 (
 	id_pedido INT IDENTITY (1,1) PRIMARY KEY,
@@ -498,8 +485,8 @@ BEGIN
 	C.id_categoria
 	FROM gd_esquema.Maestra m 
 	JOIN DB_OWNERS.TIPO_LOCAL TL ON TL.descripcion = m.LOCAL_TIPO
-	left JOIN DB_OWNERS.CATEGORIAS C ON  (TL.id_tipo_local = '1' AND C.id_categoria = SUBSTRING(m.LOCAL_DESCRIPCION,21,3)%3 +1) or 
-									(TL.id_tipo_local = '2' AND C.id_categoria = SUBSTRING(m.LOCAL_DESCRIPCION,21,3)%3 +4)
+	left JOIN DB_OWNERS.CATEGORIAS C ON  (TL.id_tipo_local = '0' AND C.id_categoria = SUBSTRING(m.LOCAL_DESCRIPCION,21,3)%3 ) or 
+									(TL.id_tipo_local = '1' AND C.id_categoria = SUBSTRING(m.LOCAL_DESCRIPCION,21,3)%3 +3)
 	WHERE m.LOCAL_NOMBRE IS NOT NULL 
 END
 GO
@@ -592,7 +579,45 @@ END
 GO
 
 
-
+IF EXISTS (SELECT * FROM sys.objects WHERE name = 'migrar_localidades')
+DROP PROCEDURE DB_OWNERS.migrar_localidades
+GO
+CREATE PROCEDURE DB_OWNERS.migrar_localidades AS
+BEGIN
+DELETE FROM DB_OWNERS.LOCALIDAD -- Usar para evitar duplicar entradas
+	DBCC CHECKIDENT ('DB_OWNERS.LOCALIDAD', RESEED, 0) -- Usar para evitar duplicar entradas
+	INSERT INTO DB_OWNERS.LOCALIDAD(
+		nombre, 
+		id_provincia
+	)
+	SELECT DISTINCT
+             M.LOCAL_LOCALIDAD,
+             P.id_provincia
+         FROM
+             gd_esquema.Maestra M
+			 JOIN DB_OWNERS.PROVINCIA P ON P.nombre = M.LOCAL_PROVINCIA
+         WHERE
+             M.LOCAL_LOCALIDAD IS NOT NULL
+	UNION
+	SELECT DISTINCT
+			M.DIRECCION_USUARIO_LOCALIDAD,
+			P.id_provincia
+		FROM
+			gd_esquema.Maestra M
+			JOIN DB_OWNERS.PROVINCIA P ON P.nombre = M.DIRECCION_USUARIO_PROVINCIA
+		WHERE
+			M.DIRECCION_USUARIO_LOCALIDAD IS NOT NULL
+	UNION
+	SELECT DISTINCT
+			M.ENVIO_MENSAJERIA_LOCALIDAD,
+			P.id_provincia
+		FROM
+			gd_esquema.Maestra M
+			JOIN DB_OWNERS.PROVINCIA P ON P.nombre = M.ENVIO_MENSAJERIA_PROVINCIA
+		WHERE
+			M.ENVIO_MENSAJERIA_LOCALIDAD IS NOT NULL
+END
+GO
 
 
 
@@ -753,8 +778,8 @@ BEGIN
 	JOIN DB_OWNERS.LOCALIDAD L ON L.id_localidad = D.id_localidad and L.nombre = m.LOCAL_LOCALIDAD
 	JOIN DB_OWNERS.PROVINCIA P ON P.id_provincia = L.id_provincia and P.nombre = m.LOCAL_PROVINCIA
 	JOIN DB_OWNERS.TIPO_LOCAL TL ON TL.descripcion = m.LOCAL_TIPO
-	JOIN DB_OWNERS.CATEGORIAS C ON  (TL.id_tipo_local = '1' AND C.id_categoria = SUBSTRING(m.LOCAL_DESCRIPCION,21,3)%3 +1) or 
-									(TL.id_tipo_local = '2' AND C.id_categoria = SUBSTRING(m.LOCAL_DESCRIPCION,21,3)%3 +4)
+	JOIN DB_OWNERS.CATEGORIAS C ON  (TL.id_tipo_local = '0' AND C.id_categoria = SUBSTRING(m.LOCAL_DESCRIPCION,21,3)%3 ) or 
+									(TL.id_tipo_local = '1' AND C.id_categoria = SUBSTRING(m.LOCAL_DESCRIPCION,21,3)%3 +3)
 	JOIN DB_OWNERS.CATEGORIA_LOCAL CL ON CL.id_tipo_local = tl.id_tipo_local and CL.id_categoria = C.id_categoria
 	WHERE m.LOCAL_NOMBRE IS NOT NULL 
 
@@ -971,44 +996,6 @@ AS BEGIN
 END
 GO	
 
-IF EXISTS (SELECT * FROM sys.objects WHERE name = 'migrar_envio')
-DROP PROCEDURE DB_OWNERS.migrar_envio
-GO
-CREATE PROCEDURE DB_OWNERS.migrar_envio
-AS BEGIN
-	DELETE FROM DB_OWNERS.ENVIO -- Usar para evitar duplicar entradas
-		DBCC CHECKIDENT ('DB_OWNERS.ENVIO', RESEED, 0) -- Usar para evitar duplicar entradas
-	INSERT INTO DB_OWNERS.ENVIO
-	SELECT DISTINCT 
-		r.id_repartidor,
-		m.ENVIO_MENSAJERIA_TIEMPO_ESTIMADO,
-		m.ENVIO_MENSAJERIA_PROPINA,
-		m.ENVIO_MENSAJERIA_PRECIO_ENVIO
-	FROM gd_esquema.Maestra m
-	JOIN DB_OWNERS.REPARTIDOR R ON R.nombre = m.REPARTIDOR_NOMBRE and R.apellido = m.REPARTIDOR_APELLIDO and R.dni = m.REPARTIDOR_DNI
-	WHERE 
-		m.PEDIDO_NRO IS NULL and
-		m.ENVIO_MENSAJERIA_NRO IS NOT NULL and
-		m.ENVIO_MENSAJERIA_TIEMPO_ESTIMADO IS NOT NULL and
-		m.ENVIO_MENSAJERIA_PROPINA IS NOT NULL and
-		m.ENVIO_MENSAJERIA_PRECIO_ENVIO IS NOT NULL
-	INSERT INTO DB_OWNERS.ENVIO
-	SELECT DISTINCT 
-		r.id_repartidor,
-		m.PEDIDO_TIEMPO_ESTIMADO_ENTREGA,
-		m.PEDIDO_PROPINA,
-		m.PEDIDO_PRECIO_ENVIO
-	FROM gd_esquema.Maestra m
-	JOIN DB_OWNERS.REPARTIDOR R ON R.nombre = m.REPARTIDOR_NOMBRE and R.apellido = m.REPARTIDOR_APELLIDO and R.dni = m.REPARTIDOR_DNI
-	WHERE 
-		m.ENVIO_MENSAJERIA_NRO IS NULL and
-		m.PEDIDO_NRO IS NOT NULL AND
-		m.PEDIDO_TIEMPO_ESTIMADO_ENTREGA IS NOT NULL and
-		m.PEDIDO_PROPINA IS NOT NULL and
-		m.PEDIDO_PRECIO_ENVIO IS NOT NULL
-END
-GO	
-
 IF EXISTS (SELECT * FROM sys.objects WHERE name = 'migrar_envio_mensajeria')
 DROP PROCEDURE DB_OWNERS.migrar_envio_mensajeria
 GO
@@ -1200,7 +1187,7 @@ GO
 ---------- DATA MIGRATION ------------
 --------------------------------------
 
-BEGIN TRANSACTION 
+
 --Tablas que no tienen ninguna FK
 	EXECUTE DB_OWNERS.migrar_usuario
 	EXECUTE DB_OWNERS.migrar_tipo_reclamo
@@ -1233,7 +1220,6 @@ BEGIN TRANSACTION
 	
 --Tablas que tienen una FK
 	EXECUTE DB_OWNERS.migrar_repartidor --se puede agregar lo de la localidad, ahi ya tendria dos fk
-	EXECUTE DB_OWNERS.migrar_envio --hasta aca tarda 25 seg
 
 --Tablas que tienen mas de una FK
 	EXECUTE DB_OWNERS.migrar_envio_mensajeria --esto solo tarda 1:20 , hasta aca todo debe tardar 1:45
@@ -1245,7 +1231,7 @@ BEGIN TRANSACTION
 	EXECUTE DB_OWNERS.migrar_cupones_usados
 	EXECUTE DB_OWNERS.migrar_items
 --Todo tarda 09:05
-COMMIT TRANSACTION
+
 
 
 --------------------------------------
@@ -1274,7 +1260,7 @@ ADD FOREIGN KEY (id_datos_tarjeta) REFERENCES DB_OWNERS.DATOS_TARJETA(id_datos_t
 
 ALTER TABLE DB_OWNERS.LOCAL_
 ADD FOREIGN KEY (id_direccion) REFERENCES DB_OWNERS.DIRECCION(id_direccion),
-	FOREIGN KEY (id_tipo_local) REFERENCES DB_OWNERS.TIPO_LOCAL(id_tipo_local);
+	FOREIGN KEY (id_categoria_local) REFERENCES DB_OWNERS.CATEGORIA_LOCAL(id_categoria_local);
 
 ALTER TABLE DB_OWNERS.REPARTIDOR
 	ADD FOREIGN KEY (id_movilidad) REFERENCES DB_OWNERS.MOVILIDAD(id_movilidad);
@@ -1287,9 +1273,6 @@ ALTER TABLE DB_OWNERS.ITEM
 ADD FOREIGN KEY (cod_producto) REFERENCES DB_OWNERS.PRODUCTO(cod_producto),
 	FOREIGN KEY (id_local) REFERENCES DB_OWNERS.LOCAL_(id_local),
 	FOREIGN KEY (id_pedido) REFERENCES DB_OWNERS.PEDIDO(id_pedido);
-
-ALTER TABLE DB_OWNERS.ENVIO
-	ADD FOREIGN KEY (id_repartidor) REFERENCES DB_OWNERS.REPARTIDOR(id_repartidor);
 
 ALTER TABLE DB_OWNERS.HORARIO_ATENCION
 ADD FOREIGN KEY (id_dia_semana) REFERENCES DB_OWNERS.DIA_SEMANA(id_dia_semana),
@@ -1313,7 +1296,6 @@ ADD FOREIGN KEY (id_reclamo) REFERENCES DB_OWNERS.RECLAMO(id_reclamo),
 ALTER TABLE DB_OWNERS.ENVIO_MENSAJERIA
 ADD FOREIGN KEY (id_usuario) REFERENCES DB_OWNERS.USUARIO(id_usuario),
 	FOREIGN KEY (id_tipo_paquete) REFERENCES DB_OWNERS.TIPO_PAQUETE(id_tipo_paquete),
-	FOREIGN KEY (id_envio) REFERENCES DB_OWNERS.ENVIO(id_envio),
 	FOREIGN KEY (id_estado) REFERENCES DB_OWNERS.ESTADO(id_estado),
 	FOREIGN KEY (id_medio_de_pago) REFERENCES DB_OWNERS.MEDIO_DE_PAGO(id_medio_de_pago);
 
@@ -1324,6 +1306,5 @@ ADD FOREIGN KEY (id_cupon) REFERENCES DB_OWNERS.CUPON(id_nro_cupon),
 ALTER TABLE DB_OWNERS.PEDIDO
 ADD FOREIGN KEY (id_usuario) REFERENCES DB_OWNERS.USUARIO(id_usuario),
 	FOREIGN KEY (id_local) REFERENCES DB_OWNERS.LOCAL_(id_local),
-	FOREIGN KEY (id_envio) REFERENCES DB_OWNERS.ENVIO(id_envio),
 	FOREIGN KEY (id_estado) REFERENCES DB_OWNERS.ESTADO(id_estado),
 	FOREIGN KEY (id_medio_de_pago) REFERENCES DB_OWNERS.MEDIO_DE_PAGO(id_medio_de_pago);
