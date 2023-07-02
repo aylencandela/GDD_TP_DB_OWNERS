@@ -1061,6 +1061,7 @@ CREATE PROCEDURE DB_OWNERS.migrar_pedidos
 AS BEGIN
 	DELETE FROM DB_OWNERS.PEDIDO -- Usar para evitar duplicar entradas
 	DBCC CHECKIDENT ('DB_OWNERS.PEDIDO', RESEED, 0) -- Usar para evitar duplicar entradas
+	INSERT INTO DB_OWNERS.PEDIDO
 	SELECT DISTINCT 
 		m.PEDIDO_NRO,
 		U.id_usuario,
