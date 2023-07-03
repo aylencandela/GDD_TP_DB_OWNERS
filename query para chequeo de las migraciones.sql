@@ -151,7 +151,6 @@ JOIN DB_OWNERS.PEDIDO p on p.id_pedido = em.id_pedido
 JOIN DB_OWNERS.TIPO_RECLAMO tr on tr.id_tipo_reclamo = em.id_tipo_reclamo 
 JOIN DB_OWNERS.ESTADO e on e.id_estado = em.id_estado 
 JOIN DB_OWNERS.OPERADOR ep on ep.id_operador = em.id_operador
-JOIN DB_OWNERS.SOLUCION s on s.id_solucion = em.id_solucion
 order by em.nro_reclamo asc
 
 select * from gd_esquema.Maestra where RECLAMO_NRO is not null order by RECLAMO_NRO asc

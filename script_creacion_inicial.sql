@@ -111,7 +111,7 @@ CREATE TABLE DB_OWNERS.LOCAL_
 )
 GO
 
-CREATE TABLE DB_OWNERS.CATEGORIAS
+CREATE TABLE DB_OWNERS.CATEGORIA
 (
 	id_categoria INT IDENTITY(1,1) PRIMARY KEY,
 	descripcion NVARCHAR(50) NOT NULL,
@@ -202,7 +202,8 @@ CREATE TABLE DB_OWNERS.RECLAMO
 	id_pedido INT NOT NULL, --FK
 	id_tipo_reclamo INT NOT NULL,  --FK
 	id_estado INT NOT NULL,   ---FK
-	id_solucion INT NOT NULL,  --FK 
+	solucion NVARCHAR(255) NOT NULL,
+	fecha_solucion DATETIME2(3) NOT NULL,
 	id_operador INT NOT NULL,  --FK
 	fecha DATETIME2(3) NOT NULL,
 	descripcion NVARCHAR(255) NOT NULL,
@@ -227,14 +228,6 @@ CREATE TABLE DB_OWNERS.OPERADOR
 	mail NVARCHAR(255) NOT NULL,
 	fecha_nacimiento DATE NOT NULL,
 	id_direccion INT NOT NULL --fk
-)
-GO
-
-CREATE TABLE DB_OWNERS.SOLUCION
-(
-	id_solucion INT IDENTITY (1,1) PRIMARY KEY,
-	descripcion NVARCHAR(255) NOT NULL,
-	fecha_solucion DATETIME2(3) NOT NULL
 )
 GO
 
@@ -298,7 +291,6 @@ CREATE TABLE DB_OWNERS.CUPON_USADO
 )
 GO
 
---DROP TABLE DB_OWNERS.PEDIDO
 CREATE TABLE DB_OWNERS.PEDIDO 
 (
 	id_pedido INT IDENTITY (1,1) PRIMARY KEY,
@@ -360,22 +352,6 @@ BEGIN
 		RECLAMO_TIPO
 	FROM gd_esquema.Maestra
 	WHERE RECLAMO_TIPO IS NOT NULL
-END
-GO
-
-IF EXISTS (SELECT * FROM sys.objects WHERE name = 'migrar_solucion_reclamo')
-DROP PROCEDURE DB_OWNERS.migrar_solucion_reclamo
-GO
-CREATE PROCEDURE DB_OWNERS.migrar_solucion_reclamo AS
-BEGIN
-	DELETE FROM DB_OWNERS.SOLUCION -- Usar para evitar duplicar entradas
-		DBCC CHECKIDENT ('DB_OWNERS.SOLUCION', RESEED, 0) -- Usar para evitar duplicar entradas
-	INSERT INTO DB_OWNERS.SOLUCION
-	SELECT DISTINCT 
-		RECLAMO_SOLUCION,
-		RECLAMO_FECHA_SOLUCION
-	FROM gd_esquema.Maestra
-	WHERE RECLAMO_NRO IS NOT NULL
 END
 GO
 
@@ -465,10 +441,10 @@ DROP PROCEDURE DB_OWNERS.migrar_categorias
 GO
 CREATE PROCEDURE DB_OWNERS.migrar_categorias AS
 BEGIN
-	DELETE FROM DB_OWNERS.CATEGORIAS -- Usar para evitar duplicar entradas
-		DBCC CHECKIDENT ('DB_OWNERS.CATEGORIAS', RESEED, 0) -- Usar para evitar duplicar entradas
-	INSERT INTO DB_OWNERS.CATEGORIAS
-	VALUES('pizzeria'),('parrilla'),('hamburgueseria'),('papelera'),('libreria'),('tecnologia')
+	DELETE FROM DB_OWNERS.CATEGORIA -- Usar para evitar duplicar entradas
+		DBCC CHECKIDENT ('DB_OWNERS.CATEGORIA', RESEED, 0) -- Usar para evitar duplicar entradas
+	INSERT INTO DB_OWNERS.CATEGORIA
+	VALUES('parrilla'),('heladeria'),('comidas rapidas'),('kiosco'),('supermercado'),('mayorista')
 END
 GO
 
@@ -485,7 +461,7 @@ BEGIN
 	C.id_categoria
 	FROM gd_esquema.Maestra m 
 	JOIN DB_OWNERS.TIPO_LOCAL TL ON TL.descripcion = m.LOCAL_TIPO
-	left JOIN DB_OWNERS.CATEGORIAS C ON  (TL.id_tipo_local = (select TOP 1 id_tipo_local from DB_OWNERS.TIPO_LOCAL ORDER BY id_tipo_local ASC)AND C.id_categoria = SUBSTRING(m.LOCAL_DESCRIPCION,21,3)%3 ) or 
+	left JOIN DB_OWNERS.CATEGORIA C ON  (TL.id_tipo_local = (select TOP 1 id_tipo_local from DB_OWNERS.TIPO_LOCAL ORDER BY id_tipo_local ASC)AND C.id_categoria = SUBSTRING(m.LOCAL_DESCRIPCION,21,3)%3 ) or 
 									(TL.id_tipo_local = (select TOP 1 id_tipo_local from DB_OWNERS.TIPO_LOCAL ORDER BY id_tipo_local DESC) AND C.id_categoria = SUBSTRING(m.LOCAL_DESCRIPCION,21,3)%3 +3)
 	WHERE m.LOCAL_NOMBRE IS NOT NULL 
 END
@@ -778,7 +754,7 @@ BEGIN
 	JOIN DB_OWNERS.LOCALIDAD L ON L.id_localidad = D.id_localidad and L.nombre = m.LOCAL_LOCALIDAD
 	JOIN DB_OWNERS.PROVINCIA P ON P.id_provincia = L.id_provincia and P.nombre = m.LOCAL_PROVINCIA
 	JOIN DB_OWNERS.TIPO_LOCAL TL ON TL.descripcion = m.LOCAL_TIPO
-	JOIN DB_OWNERS.CATEGORIAS C ON  (TL.id_tipo_local = (select TOP 1 id_tipo_local from DB_OWNERS.TIPO_LOCAL ORDER BY id_tipo_local ASC) AND C.id_categoria = SUBSTRING(m.LOCAL_DESCRIPCION,21,3)%3 ) or 
+	JOIN DB_OWNERS.CATEGORIA C ON  (TL.id_tipo_local = (select TOP 1 id_tipo_local from DB_OWNERS.TIPO_LOCAL ORDER BY id_tipo_local ASC) AND C.id_categoria = SUBSTRING(m.LOCAL_DESCRIPCION,21,3)%3 ) or 
 									(TL.id_tipo_local = (select TOP 1 id_tipo_local from DB_OWNERS.TIPO_LOCAL ORDER BY id_tipo_local DESC) AND C.id_categoria = SUBSTRING(m.LOCAL_DESCRIPCION,21,3)%3 +3)
 	JOIN DB_OWNERS.CATEGORIA_LOCAL CL ON CL.id_tipo_local = tl.id_tipo_local and CL.id_categoria = C.id_categoria
 	WHERE m.LOCAL_NOMBRE IS NOT NULL 
@@ -1094,18 +1070,18 @@ BEGIN
 		p.id_pedido,
 		tr.id_tipo_reclamo,
 		e.id_estado,
-		s.id_solucion,
+		m.RECLAMO_SOLUCION,
+		m.RECLAMO_FECHA_SOLUCION,
 		o.id_operador,
 		m.RECLAMO_FECHA,
 		m.RECLAMO_DESCRIPCION,
 		m.RECLAMO_CALIFICACION
 	FROM gd_esquema.Maestra m
-	JOIN DB_OWNERS.USUARIO u ON u.dni = m.USUARIO_DNI AND u.fecha_nacimiento = m.USUARIO_FECHA_NAC
+	JOIN DB_OWNERS.USUARIO u ON u.dni = m.USUARIO_DNI 
 	JOIN DB_OWNERS.PEDIDO p ON p.nro_pedido = m.PEDIDO_NRO AND p.id_usuario = u.id_usuario
 	JOIN DB_OWNERS.TIPO_RECLAMO tr ON tr.descripcion = m.RECLAMO_TIPO
 	JOIN DB_OWNERS.ESTADO e ON e.estado = m.RECLAMO_ESTADO
-	JOIN DB_OWNERS.SOLUCION s ON s.descripcion = m.RECLAMO_SOLUCION and s.fecha_solucion = m.RECLAMO_FECHA_SOLUCION
-	JOIN DB_OWNERS.OPERADOR o ON o.dni = m.OPERADOR_RECLAMO_DNI AND o.fecha_nacimiento = m.OPERADOR_RECLAMO_FECHA_NAC
+	JOIN DB_OWNERS.OPERADOR o ON o.dni = m.OPERADOR_RECLAMO_DNI 
 	WHERE m.RECLAMO_NRO IS NOT NULL
 END
 GO
@@ -1187,11 +1163,9 @@ GO
 ---------- DATA MIGRATION ------------
 --------------------------------------
 
-
 --Tablas que no tienen ninguna FK
 	EXECUTE DB_OWNERS.migrar_usuario
 	EXECUTE DB_OWNERS.migrar_tipo_reclamo
-	EXECUTE DB_OWNERS.migrar_solucion_reclamo
 	EXECUTE DB_OWNERS.migrar_tipo_cupon
 	EXECUTE DB_OWNERS.migrar_movilidad
 	EXECUTE DB_OWNERS.migrar_estado
@@ -1215,23 +1189,19 @@ GO
 	EXECUTE DB_OWNERS.migrar_locales
 	EXECUTE DB_OWNERS.migrar_horarios_atencion 
 	EXECUTE DB_OWNERS.migrar_direcciones_por_usuario
-	EXECUTE DB_OWNERS.migrar_cupon --hasta aca tarda 12 seg
-	EXECUTE DB_OWNERS.migrar_productos_por_local --hasta aca tarda 20 seg
-	
---Tablas que tienen una FK
-	EXECUTE DB_OWNERS.migrar_repartidor --se puede agregar lo de la localidad, ahi ya tendria dos fk
+	EXECUTE DB_OWNERS.migrar_cupon 
+	EXECUTE DB_OWNERS.migrar_productos_por_local
+	EXECUTE DB_OWNERS.migrar_repartidor 
 
 --Tablas que tienen mas de una FK
-	EXECUTE DB_OWNERS.migrar_envio_mensajeria --esto solo tarda 1:20 , hasta aca todo debe tardar 1:45
-	EXECUTE DB_OWNERS.migrar_pedidos --dura 42 segundos, hasta aca todo debe tardar 2:30
-	EXECUTE DB_OWNERS.migrar_reclamos --tarda 4:30 sin operadores, 6:43 min con operadores, una manera de reducir el tiempo es que los campos de solucion, esten directamente en reclamo
+	EXECUTE DB_OWNERS.migrar_envio_mensajeria 
+	EXECUTE DB_OWNERS.migrar_pedidos
+	EXECUTE DB_OWNERS.migrar_reclamos 
 
 --Tablas que dependen de las anteriores
 	EXECUTE DB_OWNERS.migrar_cupones_reclamo
 	EXECUTE DB_OWNERS.migrar_cupones_usados
 	EXECUTE DB_OWNERS.migrar_items
---Todo tarda 09:05
-
 
 
 --------------------------------------
@@ -1283,7 +1253,6 @@ ADD FOREIGN KEY (id_usuario) REFERENCES DB_OWNERS.USUARIO(id_usuario),
 	FOREIGN KEY (id_pedido) REFERENCES DB_OWNERS.PEDIDO(id_pedido),
 	FOREIGN KEY (id_tipo_reclamo) REFERENCES DB_OWNERS.TIPO_RECLAMO(id_tipo_reclamo),
 	FOREIGN KEY (id_estado) REFERENCES DB_OWNERS.ESTADO(id_estado),
-	FOREIGN KEY (id_solucion) REFERENCES DB_OWNERS.SOLUCION(id_solucion),
 	FOREIGN KEY (id_operador) REFERENCES DB_OWNERS.OPERADOR(id_operador);
 
 ALTER TABLE DB_OWNERS.OPERADOR
