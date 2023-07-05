@@ -286,10 +286,9 @@ DELETE FROM DB_OWNERS.BI_RECLAMOS -- Usar para evitar duplicar entradas
 		BTR.id_tipo_reclamo,
 		BL.id_local,
 		COUNT(*) AS [Cantidad de reclamos],
-		AVG(DATEDIFF(MINUTE, R.fecha, S.fecha_solucion)) AS [Tiempo de resolucion promedio],
+		AVG(DATEDIFF(MINUTE, R.fecha, R.fecha_solucion)) AS [Tiempo de resolucion promedio],
 		ISNULL(SUM(C.monto),0) AS [Monto generado por cupones]
 		FROM DB_OWNERS.RECLAMO R
-		JOIN DB_OWNERS.SOLUCION S ON S.id_solucion = R.id_solucion
 		JOIN DB_OWNERS.USUARIO U ON U.id_usuario = R.id_usuario
 		JOIN DB_OWNERS.OPERADOR O ON O.id_operador = R.id_operador
 		JOIN DB_OWNERS.PEDIDO P ON P.id_pedido = R.id_pedido
