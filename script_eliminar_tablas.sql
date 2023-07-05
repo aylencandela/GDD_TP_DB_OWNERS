@@ -3,9 +3,6 @@ DROP PROCEDURE DB_OWNERS.migrar_usuario;
 DROP PROCEDURE DB_OWNERS.migrar_provincias;
 DROP PROCEDURE DB_OWNERS.migrar_localidades;
 DROP PROCEDURE DB_OWNERS.migrar_direcciones;
-DROP PROCEDURE DB_OWNERS.migrar_datos_tarjetas;
-DROP PROCEDURE DB_OWNERS.migrar_medios_de_pago;
-DROP PROCEDURE DB_OWNERS.migrar_pagos;
 DROP PROCEDURE DB_OWNERS.migrar_tipos_local;
 DROP PROCEDURE DB_OWNERS.migrar_categorias;
 DROP PROCEDURE DB_OWNERS.migrar_categorias_local;
@@ -19,12 +16,10 @@ DROP PROCEDURE DB_OWNERS.migrar_direcciones_por_usuario;
 DROP PROCEDURE DB_OWNERS.migrar_direcciones2;
 DROP PROCEDURE DB_OWNERS.migrar_envio_mensajeria;
 DROP PROCEDURE DB_OWNERS.migrar_estado;
-DROP PROCEDURE DB_OWNERS.migrar_estado_reclamo;
 DROP PROCEDURE DB_OWNERS.migrar_items;
 DROP PROCEDURE DB_OWNERS.migrar_medio_de_pago;
 DROP PROCEDURE DB_OWNERS.migrar_movilidad;
 DROP PROCEDURE DB_OWNERS.migrar_operador;
-DROP PROCEDURE DB_OWNERS.migrar_pedido;
 DROP PROCEDURE DB_OWNERS.migrar_pedidos;
 DROP PROCEDURE DB_OWNERS.migrar_productos;
 DROP PROCEDURE DB_OWNERS.migrar_productos_por_local;
@@ -32,7 +27,6 @@ DROP PROCEDURE DB_OWNERS.migrar_reclamos;
 DROP PROCEDURE DB_OWNERS.migrar_repartidor;
 DROP PROCEDURE DB_OWNERS.migrar_tipo_paquete;
 DROP PROCEDURE DB_OWNERS.migrar_tipo_reclamo;
-DROP PROCEDURE DB_OWNERS.migrar_usuarios;
 DROP PROCEDURE DB_OWNERS.migrar_tipo_cupon
 DROP PROCEDURE DB_OWNERS.migrar_cupon
 
