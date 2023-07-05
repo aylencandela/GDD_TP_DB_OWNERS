@@ -1,49 +1,12 @@
---ELIMINA TODAS LAS TABLAS CREADAS
-drop table 
-DB_OWNERS.USUARIO, 
-DB_OWNERS.DATOS_TARJETA,
-DB_OWNERS.DIRECCION,
-DB_OWNERS.LOCALIDAD,
-DB_OWNERS.PROVINCIA,
-DB_OWNERS.DIRECCION_POR_USUARIO,
-DB_OWNERS.TIPO_CUPON,
-DB_OWNERS.CUPON,
-DB_OWNERS.MEDIO_DE_PAGO,
-DB_OWNERS.LOCAL_,
-DB_OWNERS.TIPO_LOCAL,
-DB_OWNERS.REPARTIDOR,
-DB_OWNERS.PRODUCTO,
-DB_OWNERS.PRODUCTO_POR_LOCAL,
-DB_OWNERS.ITEM,
-DB_OWNERS.ENVIO,
-DB_OWNERS.MOVILIDAD,
-DB_OWNERS.HORARIO_ATENCION,
-DB_OWNERS.DIA_SEMANA,
-DB_OWNERS.RECLAMO,
-DB_OWNERS.TIPO_RECLAMO,
-DB_OWNERS.OPERADOR,
-DB_OWNERS.SOLUCION,
-DB_OWNERS.CUPON_RECLAMO,
-DB_OWNERS.TIPO_PAQUETE,
-DB_OWNERS.ENVIO_MENSAJERIA,
-DB_OWNERS.ESTADO,
-DB_OWNERS.CUPON_USADO,
-DB_OWNERS.PEDIDO
-
-
 --CHEQUEO TABLAS CREADAS POR SP
 
 --usuario
 select * FROM DB_OWNERS.USUARIO order by DNI asc
-select DISTINCT USUARIO_APELLIDO, USUARIO_DNI FROM gd_esquema.Maestra where USUARIO_APELLIDO is not null and USUARIO_DNI is not null
+select DISTINCT USUARIO_APELLIDO, USUARIO_DNI FROM gd_esquema.Maestra where USUARIO_APELLIDO is not null and USUARIO_DNI is not null order by USUARIO_DNI asc
 
 --tipo_reclamo
 select * FROM DB_OWNERS.TIPO_RECLAMO
 select DISTINCT RECLAMO_TIPO FROM gd_esquema.Maestra where RECLAMO_TIPO is not null
-
---solucion_reclamo
-select * FROM DB_OWNERS.SOLUCION order by fecha_solucion asc
-select DISTINCT RECLAMO_SOLUCION, RECLAMO_FECHA_SOLUCION FROM gd_esquema.Maestra where RECLAMO_NRO is not null AND RECLAMO_SOLUCION is not null AND RECLAMO_FECHA_SOLUCION is not null order by RECLAMO_FECHA_SOLUCION asc
 
 --tipo_cupon
 select * FROM DB_OWNERS.TIPO_CUPON
@@ -58,6 +21,18 @@ select * FROM DB_OWNERS.ESTADO
 select DISTINCT ENVIO_MENSAJERIA_ESTADO FROM gd_esquema.Maestra where ENVIO_MENSAJERIA_ESTADO is not null 
 select DISTINCT PEDIDO_ESTADO FROM gd_esquema.Maestra where PEDIDO_ESTADO is not null
 select DISTINCT RECLAMO_ESTADO FROM gd_esquema.Maestra where RECLAMO_ESTADO is not null
+
+--tipos-local
+select * from DB_OWNERS.TIPO_LOCAL
+select DISTINCT LOCAL_TIPO FROM gd_esquema.Maestra
+
+--categoria
+select * FROM DB_OWNERS.CATEGORIA
+
+--categoria-local
+select * FROM DB_OWNERS.CATEGORIA_LOCAL cl 
+		join DB_OWNERS.CATEGORIA c on c.id_categoria = cl.id_categoria
+		join DB_OWNERS.TIPO_LOCAL tl on tl.id_tipo_local = cl.id_tipo_local
 
 --provincia
 select * FROM DB_OWNERS.PROVINCIA
@@ -78,11 +53,17 @@ select * FROM DB_OWNERS.PRODUCTO
 select DISTINCT PRODUCTO_LOCAL_NOMBRE FROM gd_esquema.Maestra where PRODUCTO_LOCAL_NOMBRE is not null
 
 --localidad
-select nombre, id_provincia FROM DB_OWNERS.LOCALIDAD WHERE NOMBRE = 'San Jose' --ambas consultas dan diferentes cantidades
-where not exists(
-select  * FROM gd_esquema.Maestra where ENVIO_MENSAJERIA_LOCALIDAD = 'San Jose' is not null UNION
+--DAN DIFERENTES CANTIDADES PORQUE ALGUNAS LOCALIDADES SE REPITEN, EJ: SAN JOSE
+select * FROM DB_OWNERS.LOCALIDAD ORDER BY NOMBRE
+select DISTINCT ENVIO_MENSAJERIA_LOCALIDAD FROM gd_esquema.Maestra where ENVIO_MENSAJERIA_LOCALIDAD is not null UNION
 select DISTINCT DIRECCION_USUARIO_LOCALIDAD FROM gd_esquema.Maestra where DIRECCION_USUARIO_LOCALIDAD is not null UNION
-select DISTINCT LOCAL_LOCALIDAD FROM gd_esquema.Maestra where LOCAL_LOCALIDAD is not null) 
+select DISTINCT LOCAL_LOCALIDAD FROM gd_esquema.Maestra where LOCAL_LOCALIDAD is not null 
+
+select l.nombre, c.nombre FROM DB_OWNERS.LOCALIDAD l
+join DB_OWNERS.PROVINCIA c on c.id_provincia = l.id_provincia WHERE l.NOMBRE = 'San Jose'
+
+select distinct ENVIO_MENSAJERIA_LOCALIDAD,ENVIO_MENSAJERIA_PROVINCIA, DIRECCION_USUARIO_LOCALIDAD, DIRECCION_USUARIO_PROVINCIA, LOCAL_LOCALIDAD, LOCAL_PROVINCIA FROM gd_esquema.Maestra where ENVIO_MENSAJERIA_LOCALIDAD is not null or
+DIRECCION_USUARIO_LOCALIDAD is not null or LOCAL_LOCALIDAD is not null 
 
 --datos_tarjeta
 select * FROM DB_OWNERS.DATOS_TARJETA ORDER BY NUMERO
@@ -121,6 +102,7 @@ select distinct DIRECCION_USUARIO_NOMBRE, DIRECCION_USUARIO_DIRECCION FROM gd_es
 --cupones
 select * FROM DB_OWNERS.CUPON c join DB_OWNERS.USUARIO u on c.id_usuario = u.id_usuario  where u.nombre = 'POMPONIO' order by c.nro_cupon asc
 select * from gd_esquema.Maestra WHERE CUPON_NRO = '11119211' or  CUPON_RECLAMO_NRO = '11119211'
+select * FROM DB_OWNERS.CUPON c join DB_OWNERS.USUARIO u on c.id_usuario = u.id_usuario  where u.nombre = 'GERMAN' order by c.nro_cupon asc
 select * from gd_esquema.Maestra WHERE CUPON_RECLAMO_NRO = '11119211'
 
 --producto_por_local
@@ -128,19 +110,15 @@ select * FROM DB_OWNERS.PRODUCTO_POR_LOCAL
 select distinct PRODUCTO_LOCAL_CODIGO FROM gd_esquema.Maestra where PRODUCTO_LOCAL_CODIGO is not null
 
 --repartidor
-select * FROM DB_OWNERS.REPARTIDOR
-
---envio
-select E.TIEMPO_EST_ENTREGA, E.PROPINA, R.NOMBRE, R.APELLIDO FROM DB_OWNERS.ENVIO E JOIN DB_OWNERS.REPARTIDOR r ON R.ID_REPARTIDOR = E.ID_REPARTIDOR
-
+select * FROM DB_OWNERS.REPARTIDOR c join DB_OWNERS.LOCALIDAD u on c.id_localidad = u.id_localidad
 
 --envio mensajeria
-select * FROM DB_OWNERS.ENVIO_MENSAJERIA em JOIN DB_OWNERS.MEDIO_DE_PAGO u on u.id_medio_de_pago = em.id_medio_de_pago order by nro_mensajeria
+select * FROM DB_OWNERS.ENVIO_MENSAJERIA em JOIN DB_OWNERS.MEDIO_DE_PAGO u on u.id_medio_de_pago = em.id_medio_de_pago JOIN DB_OWNERS.REPARTIDOR r on r.id_repartidor = em.id_repartidor order by nro_mensajeria
 
 select * from gd_esquema.Maestra where ENVIO_MENSAJERIA_NRO is not null order by ENVIO_MENSAJERIA_NRO 
 
 --pedido
-select * FROM DB_OWNERS.PEDIDO em JOIN DB_OWNERS.MEDIO_DE_PAGO u on u.id_medio_de_pago = em.id_medio_de_pago JOIN DB_OWNERS.LOCAL_ l on l.id_local = em.id_local order by nro_pedido
+select * FROM DB_OWNERS.PEDIDO em JOIN DB_OWNERS.MEDIO_DE_PAGO u on u.id_medio_de_pago = em.id_medio_de_pago JOIN DB_OWNERS.LOCAL_ l on l.id_local = em.id_local JOIN DB_OWNERS.REPARTIDOR r on r.id_repartidor = em.id_repartidor order by nro_pedido
 
 select * from gd_esquema.Maestra where PEDIDO_NRO is not null order by PEDIDO_NRO 
 
@@ -173,14 +151,3 @@ SELECT USUARIO_APELLIDO, ENVIO_MENSAJERIA_NRO, PEDIDO_NRO, CUPON_NRO, RECLAMO_NR
 
 --item
 select * from DB_OWNERS.ITEM 
-
-
-
-/*ESTO ES PARA ASIGNARLE A UN REPARTIDOR UNA LOCALIDAD
-envio mensajeria
-Debo buscar el repartidor, el nombre apellido etc de ese reparidor, fijarme donde fue la ultima entrega que hizo, y asignarle esa lolcaludad, para eso, necesito ver cualfue el envio_mensajeria_fecha_entrega ultimo, de ahi sacar la localidad de ese envio mensajeria
-
-
-envio pedido
-Debo buscar el repartidor, el nombre apellido etc de ese reparidor, fijarme donde fue la ultima entrega que hizo, y asignarle esa lolcaludad, para eso, necesito ver cualfue el pedido_fecha_entrega ultimo de ese repartidor, de ahi sacar la localidad de ese direccion usuario localidad	
-*/
