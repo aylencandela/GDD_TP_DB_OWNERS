@@ -102,7 +102,7 @@ SELECT DISTINCT YEAR(fecha), MONTH(fecha) FROM DB_OWNERS.RECLAMO
 CREATE TABLE DB_OWNERS.BI_DIA
 (
 	id_dia INT IDENTITY (1,1) PRIMARY KEY,
-	nombre varchar(10)
+	nombre nvarchar(10)
 )
 GO
 INSERT INTO DB_OWNERS.BI_DIA
@@ -194,7 +194,7 @@ INSERT INTO DB_OWNERS.BI_CATEGORIA_LOCAL
 			C.descripcion
 	FROM DB_OWNERS.CATEGORIA_LOCAL CL
 	JOIN DB_OWNERS.TIPO_LOCAL TL ON TL.id_tipo_local = CL.id_tipo_local
-	JOIN DB_OWNERS.CATEGORIAS C ON C.id_categoria = CL.id_categoria
+	JOIN DB_OWNERS.CATEGORIA C ON C.id_categoria = CL.id_categoria
 
 --SELECT * FROM DB_OWNERS.BI_CATEGORIA_LOCAL
 
@@ -363,7 +363,7 @@ DELETE FROM DB_OWNERS.BI_PEDIDOS -- Usar para evitar duplicar entradas
 		JOIN DB_OWNERS.MEDIO_DE_PAGO MP ON MP.id_medio_de_pago = P.id_medio_de_pago
 		JOIN DB_OWNERS.CATEGORIA_LOCAL CL ON CL.id_categoria_local = L.id_categoria_local
 		JOIN DB_OWNERS.TIPO_LOCAL TL ON TL.id_tipo_local = CL.id_tipo_local
-		JOIN DB_OWNERS.CATEGORIAS CA ON CA.id_categoria = CL.id_categoria
+		JOIN DB_OWNERS.CATEGORIA CA ON CA.id_categoria = CL.id_categoria
 		JOIN DB_OWNERS.REPARTIDOR R ON R.id_repartidor = P.id_repartidor
 		JOIN DB_OWNERS.MOVILIDAD M ON M.id_movilidad = R.id_movilidad
 		JOIN DB_OWNERS.BI_TIEMPO BT ON año = YEAR(P.fecha) AND mes = MONTH(P.fecha)
