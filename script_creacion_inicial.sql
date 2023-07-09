@@ -155,21 +155,18 @@ CREATE TABLE DB_OWNERS.PRODUCTO(
 GO
 
 CREATE TABLE DB_OWNERS.PRODUCTO_POR_LOCAL(
+	id_producto_por_local INT IDENTITY(1,1) PRIMARY KEY,
 	cod_producto nvarchar(50) NOT NULL,---FK,
 	id_local INT, ---FK
-	PRIMARY KEY(cod_producto, id_local),
 	precio_unitario decimal(18,2) NOT NULL,
 )
 GO
 
 CREATE TABLE DB_OWNERS.ITEM(
 	id_item INT IDENTITY(1,1) PRIMARY KEY,
-	cod_producto nvarchar(50) NOT NULL, --fk
-	id_local INT, ---FK
-    FOREIGN KEY (cod_producto, id_local) REFERENCES DB_OWNERS.PRODUCTO_POR_LOCAL(cod_producto, id_local),
+	id_producto_por_local INT NOT NULL, --FK
 	id_pedido int NOT NULL, --fk
-	cantidad decimal(18,0) NOT NULL,
-	precio_total decimal(18,2) NOT NULL
+	cantidad decimal(18,0) NOT NULL
 )
 GO
 
@@ -309,7 +306,8 @@ CREATE TABLE DB_OWNERS.PEDIDO
 	tarifa_servicio DECIMAL(18, 2) NOT NULL,
 	id_medio_de_pago INT NOT NULL, --fk
 	precio_total_servicio DECIMAL(18, 2) NOT NULL,
-	total_cupones DECIMAL(18, 2)
+	total_cupones DECIMAL(18, 2),
+	precio_total decimal(18,2) NOT NULL
 )
 GO
 
@@ -324,8 +322,6 @@ DROP PROCEDURE DB_OWNERS.migrar_usuario
 GO
 CREATE PROCEDURE DB_OWNERS.migrar_usuario AS
 BEGIN
-	DELETE FROM DB_OWNERS.USUARIO -- Usar para evitar duplicar entradas
-		DBCC CHECKIDENT ('DB_OWNERS.USUARIO', RESEED, 0) -- Usar para evitar duplicar entradas
 	INSERT INTO DB_OWNERS.USUARIO
 	SELECT DISTINCT 
 		m.USUARIO_NOMBRE,
@@ -345,8 +341,6 @@ DROP PROCEDURE DB_OWNERS.migrar_tipo_reclamo
 GO
 CREATE PROCEDURE DB_OWNERS.migrar_tipo_reclamo AS
 BEGIN
-	DELETE FROM DB_OWNERS.TIPO_RECLAMO -- Usar para evitar duplicar entradas
-		DBCC CHECKIDENT ('DB_OWNERS.TIPO_RECLAMO', RESEED, 0) -- Usar para evitar duplicar entradas
 	INSERT INTO DB_OWNERS.TIPO_RECLAMO
 	SELECT DISTINCT 
 		RECLAMO_TIPO
@@ -360,8 +354,6 @@ DROP PROCEDURE DB_OWNERS.migrar_tipo_cupon
 GO
 CREATE PROCEDURE DB_OWNERS.migrar_tipo_cupon AS
 BEGIN
-	DELETE FROM DB_OWNERS.TIPO_CUPON -- Usar para evitar duplicar entradas
-		DBCC CHECKIDENT ('DB_OWNERS.TIPO_CUPON', RESEED, 0) -- Usar para evitar duplicar entradas
 	INSERT INTO DB_OWNERS.TIPO_CUPON(
 		descripcion
 	)
@@ -382,8 +374,6 @@ DROP PROCEDURE DB_OWNERS.migrar_movilidad
 GO
 CREATE PROCEDURE DB_OWNERS.migrar_movilidad
 AS BEGIN
-	DELETE FROM DB_OWNERS.MOVILIDAD -- Usar para evitar duplicar entradas
-		DBCC CHECKIDENT ('DB_OWNERS.MOVILIDAD', RESEED, 0) -- Usar para evitar duplicar entradas
 	INSERT INTO DB_OWNERS.MOVILIDAD
 	SELECT DISTINCT 
 		m.REPARTIDOR_TIPO_MOVILIDAD
@@ -397,8 +387,6 @@ DROP PROCEDURE DB_OWNERS.migrar_estado
 GO
 CREATE PROCEDURE DB_OWNERS.migrar_estado AS
 BEGIN
-	DELETE FROM DB_OWNERS.ESTADO -- Usar para evitar duplicar entradas
-		DBCC CHECKIDENT ('DB_OWNERS.ESTADO', RESEED, 0) -- Usar para evitar duplicar entradas
 	INSERT INTO DB_OWNERS.ESTADO(
 		estado
 	)
@@ -416,6 +404,7 @@ BEGIN
 		m.RECLAMO_ESTADO
 		FROM gd_esquema.Maestra m 
 		WHERE m.RECLAMO_ESTADO IS NOT NULL
+	order by 1 asc
 END
 GO
 
@@ -424,8 +413,6 @@ DROP PROCEDURE DB_OWNERS.migrar_tipos_local
 GO
 CREATE PROCEDURE DB_OWNERS.migrar_tipos_local AS
 BEGIN
-	DELETE FROM DB_OWNERS.TIPO_LOCAL -- Usar para evitar duplicar entradas
-		DBCC CHECKIDENT ('DB_OWNERS.TIPO_LOCAL', RESEED, 0) -- Usar para evitar duplicar entradas
 	INSERT INTO DB_OWNERS.TIPO_LOCAL(
 		descripcion
 	)
@@ -441,8 +428,6 @@ DROP PROCEDURE DB_OWNERS.migrar_categorias
 GO
 CREATE PROCEDURE DB_OWNERS.migrar_categorias AS
 BEGIN
-	DELETE FROM DB_OWNERS.CATEGORIA -- Usar para evitar duplicar entradas
-		DBCC CHECKIDENT ('DB_OWNERS.CATEGORIA', RESEED, 0) -- Usar para evitar duplicar entradas
 	INSERT INTO DB_OWNERS.CATEGORIA
 	VALUES('parrilla'),('heladeria'),('comidas rapidas'),('kiosco'),('supermercado'),('mayorista')
 END
@@ -453,8 +438,6 @@ DROP PROCEDURE DB_OWNERS.migrar_categorias_local
 GO
 CREATE PROCEDURE DB_OWNERS.migrar_categorias_local AS
 BEGIN
-	DELETE FROM DB_OWNERS.CATEGORIA_LOCAL -- Usar para evitar duplicar entradas
-		DBCC CHECKIDENT ('DB_OWNERS.CATEGORIA_LOCAL', RESEED, 0) -- Usar para evitar duplicar entradas
 	INSERT INTO DB_OWNERS.CATEGORIA_LOCAL
 	SELECT distinct
 	TL.id_tipo_local,
@@ -472,8 +455,6 @@ DROP PROCEDURE DB_OWNERS.migrar_provincias
 GO
 CREATE PROCEDURE DB_OWNERS.migrar_provincias AS
 BEGIN
-DELETE FROM DB_OWNERS.PROVINCIA -- Usar para evitar duplicar entradas
-	DBCC CHECKIDENT ('DB_OWNERS.PROVINCIA', RESEED, 0) -- Usar para evitar duplicar entradas
 	INSERT INTO DB_OWNERS.PROVINCIA(
 		nombre
 	)
@@ -499,8 +480,6 @@ DROP PROCEDURE DB_OWNERS.migrar_dias_semana
 GO
 CREATE PROCEDURE DB_OWNERS.migrar_dias_semana AS
 BEGIN
-	DELETE FROM DB_OWNERS.DIA_SEMANA -- Usar para evitar duplicar entradas
-		DBCC CHECKIDENT ('DB_OWNERS.DIA_SEMANA', RESEED, 0) -- Usar para evitar duplicar entradas
 	INSERT INTO DB_OWNERS.DIA_SEMANA(
 		nombre_dia
 	)
@@ -516,8 +495,6 @@ DROP PROCEDURE DB_OWNERS.migrar_tipo_paquete
 GO
 CREATE PROCEDURE DB_OWNERS.migrar_tipo_paquete AS
 BEGIN
-	DELETE FROM DB_OWNERS.TIPO_PAQUETE -- Usar para evitar duplicar entradas
-		DBCC CHECKIDENT ('DB_OWNERS.TIPO_PAQUETE', RESEED, 0) -- Usar para evitar duplicar entradas
 	INSERT INTO DB_OWNERS.TIPO_PAQUETE
 	SELECT DISTINCT 
 		m.PAQUETE_TIPO,
@@ -542,8 +519,6 @@ DROP PROCEDURE DB_OWNERS.migrar_productos
 GO
 CREATE PROCEDURE DB_OWNERS.migrar_productos
 AS BEGIN
-	DELETE FROM DB_OWNERS.PRODUCTO -- Usar para evitar duplicar entradas
-		--DBCC CHECKIDENT ('DB_OWNERS.PRODUCTO', RESEED, 0) -- Usar para evitar duplicar entradas -- No se usa porque no tiene ids
 	INSERT INTO DB_OWNERS.PRODUCTO(cod_producto, nombre, descripcion)
 	SELECT DISTINCT 
 		m.PRODUCTO_LOCAL_CODIGO,
@@ -560,8 +535,6 @@ DROP PROCEDURE DB_OWNERS.migrar_localidades
 GO
 CREATE PROCEDURE DB_OWNERS.migrar_localidades AS
 BEGIN
-DELETE FROM DB_OWNERS.LOCALIDAD -- Usar para evitar duplicar entradas
-	DBCC CHECKIDENT ('DB_OWNERS.LOCALIDAD', RESEED, 0) -- Usar para evitar duplicar entradas
 	INSERT INTO DB_OWNERS.LOCALIDAD(
 		nombre, 
 		id_provincia
@@ -602,8 +575,6 @@ DROP PROCEDURE DB_OWNERS.migrar_datos_tarjeta
 GO
 CREATE PROCEDURE DB_OWNERS.migrar_datos_tarjeta
 AS BEGIN
-	DELETE FROM DB_OWNERS.DATOS_TARJETA -- Usar para evitar duplicar entradas
-	DBCC CHECKIDENT ('DB_OWNERS.DATOS_TARJETA', RESEED, 0) -- Usar para evitar duplicar entradas
 	INSERT INTO DB_OWNERS.DATOS_TARJETA(id_usuario, marca, numero, tipo)
 	SELECT DISTINCT 
 		u.id_usuario,
@@ -622,8 +593,6 @@ DROP PROCEDURE DB_OWNERS.migrar_medio_de_pago
 GO
 CREATE PROCEDURE DB_OWNERS.migrar_medio_de_pago
 AS BEGIN
-	DELETE FROM DB_OWNERS.MEDIO_DE_PAGO -- Usar para evitar duplicar entradas
-	DBCC CHECKIDENT ('DB_OWNERS.MEDIO_DE_PAGO', RESEED, 0) -- Usar para evitar duplicar entradas
 	INSERT INTO DB_OWNERS.MEDIO_DE_PAGO(medio)
 	VALUES ('Efectivo')
 	INSERT INTO DB_OWNERS.MEDIO_DE_PAGO(id_datos_tarjeta, medio)
@@ -642,9 +611,7 @@ DROP PROCEDURE DB_OWNERS.migrar_direcciones
 GO
 CREATE PROCEDURE DB_OWNERS.migrar_direcciones AS
 BEGIN
-DELETE FROM DB_OWNERS.DIRECCION -- Usar para evitar duplicar entradas
-	DBCC CHECKIDENT ('DB_OWNERS.DIRECCION', RESEED, 0) -- Usar para evitar duplicar entradas
-INSERT INTO DB_OWNERS.DIRECCION(
+	INSERT INTO DB_OWNERS.DIRECCION(
 	calle_numero,
 	id_localidad
 	)
@@ -711,8 +678,6 @@ DROP PROCEDURE DB_OWNERS.migrar_operador
 GO
 CREATE PROCEDURE DB_OWNERS.migrar_operador AS
 BEGIN
-	DELETE FROM DB_OWNERS.OPERADOR -- Usar para evitar duplicar entradas
-		DBCC CHECKIDENT ('DB_OWNERS.OPERADOR', RESEED, 0) -- Usar para evitar duplicar entradas
 	INSERT INTO DB_OWNERS.OPERADOR
 	SELECT DISTINCT 
 		m.OPERADOR_RECLAMO_NOMBRE,
@@ -735,8 +700,6 @@ DROP PROCEDURE DB_OWNERS.migrar_locales
 GO
 CREATE PROCEDURE DB_OWNERS.migrar_locales AS
 BEGIN
-	DELETE FROM DB_OWNERS.LOCAL_ -- Usar para evitar duplicar entradas
-		DBCC CHECKIDENT ('DB_OWNERS.LOCAL_', RESEED, 0) -- Usar para evitar duplicar entradas
 	INSERT INTO DB_OWNERS.LOCAL_(
 		nombre,
 		descripcion,
@@ -767,8 +730,6 @@ DROP PROCEDURE DB_OWNERS.migrar_horarios_atencion
 GO
 CREATE PROCEDURE DB_OWNERS.migrar_horarios_atencion AS
 BEGIN
-	DELETE FROM DB_OWNERS.HORARIO_ATENCION -- Usar para evitar duplicar entradas
-		DBCC CHECKIDENT ('DB_OWNERS.HORARIO_ATENCION', RESEED, 0) -- Usar para evitar duplicar entradas
 	INSERT INTO DB_OWNERS.HORARIO_ATENCION(
 		hora_apertura,
 		hora_cierre,
@@ -791,7 +752,6 @@ DROP PROCEDURE DB_OWNERS.migrar_direcciones_por_usuario
 GO
 CREATE PROCEDURE DB_OWNERS.migrar_direcciones_por_usuario AS
 BEGIN
-	DELETE FROM DB_OWNERS.DIRECCION_POR_USUARIO -- Usar para evitar duplicar entradas
 	INSERT INTO DB_OWNERS.DIRECCION_POR_USUARIO
 	SELECT DISTINCT 
 		U.id_usuario,
@@ -811,8 +771,6 @@ DROP PROCEDURE DB_OWNERS.migrar_cupon
 GO
 CREATE PROCEDURE DB_OWNERS.migrar_cupon AS
 BEGIN
-	DELETE FROM DB_OWNERS.CUPON
-	DBCC CHECKIDENT ('DB_OWNERS.CUPON', RESEED, 0)
 	INSERT INTO DB_OWNERS.CUPON(
 		nro_cupon,
 		id_usuario,
@@ -858,8 +816,6 @@ DROP PROCEDURE DB_OWNERS.migrar_productos_por_local
 GO
 CREATE PROCEDURE DB_OWNERS.migrar_productos_por_local
 AS BEGIN
-	DELETE FROM DB_OWNERS.PRODUCTO_POR_LOCAL -- Usar para evitar duplicar entradas
-		--DBCC CHECKIDENT ('DB_OWNERS.PRODUCTO', RESEED, 0) -- Usar para evitar duplicar entradas
 	INSERT INTO DB_OWNERS.PRODUCTO_POR_LOCAL
 	SELECT DISTINCT 
 		PR.cod_producto,
@@ -880,8 +836,7 @@ DROP PROCEDURE DB_OWNERS.migrar_repartidor
 GO
 CREATE PROCEDURE DB_OWNERS.migrar_repartidor
 AS BEGIN
-	DELETE FROM DB_OWNERS.REPARTIDOR -- Usar para evitar duplicar entradas
-		DBCC CHECKIDENT ('DB_OWNERS.REPARTIDOR', RESEED, 0) -- Usar para evitar duplicar entradas
+
 	DECLARE @FECHA datetime2(3)
 	DECLARE @MOVILIDAD int
 	DECLARE @LOCALIDAD int
@@ -976,8 +931,6 @@ DROP PROCEDURE DB_OWNERS.migrar_envio_mensajeria
 GO
 CREATE PROCEDURE DB_OWNERS.migrar_envio_mensajeria
 AS BEGIN
-	DELETE FROM DB_OWNERS.ENVIO_MENSAJERIA -- Usar para evitar duplicar entradas
-		DBCC CHECKIDENT ('DB_OWNERS.ENVIO_MENSAJERIA', RESEED, 0) -- Usar para evitar duplicar entradas
 	INSERT INTO DB_OWNERS.ENVIO_MENSAJERIA
 	SELECT DISTINCT 
 		m.ENVIO_MENSAJERIA_NRO,
@@ -1021,8 +974,6 @@ DROP PROCEDURE DB_OWNERS.migrar_pedidos
 GO
 CREATE PROCEDURE DB_OWNERS.migrar_pedidos
 AS BEGIN
-	DELETE FROM DB_OWNERS.PEDIDO -- Usar para evitar duplicar entradas
-	DBCC CHECKIDENT ('DB_OWNERS.PEDIDO', RESEED, 0) -- Usar para evitar duplicar entradas
 	INSERT INTO DB_OWNERS.PEDIDO
 	SELECT DISTINCT 
 		m.PEDIDO_NRO,
@@ -1040,7 +991,8 @@ AS BEGIN
 		m.PEDIDO_TARIFA_SERVICIO,
 		COALESCE(MP.id_medio_de_pago,'0') AS id_medio_pago,
 		m.PEDIDO_TOTAL_SERVICIO,
-		m.PEDIDO_TOTAL_CUPONES
+		m.PEDIDO_TOTAL_CUPONES,
+		m.PEDIDO_TOTAL_PRODUCTOS
 	FROM gd_esquema.Maestra m
 	JOIN DB_OWNERS.USUARIO U ON U.dni = m.USUARIO_DNI
 	JOIN DB_OWNERS.DIRECCION D ON D.calle_numero = m.LOCAL_DIRECCION 
@@ -1060,8 +1012,6 @@ DROP PROCEDURE DB_OWNERS.migrar_reclamos
 GO
 CREATE PROCEDURE DB_OWNERS.migrar_reclamos AS
 BEGIN
-	DELETE FROM DB_OWNERS.RECLAMO -- Usar para evitar duplicar entradas
-	DBCC CHECKIDENT ('DB_OWNERS.RECLAMO', RESEED, 0) -- Usar para evitar duplicar entradas
 	INSERT INTO DB_OWNERS.RECLAMO
 	SELECT DISTINCT 
 		m.RECLAMO_NRO,
@@ -1090,8 +1040,6 @@ DROP PROCEDURE DB_OWNERS.migrar_cupones_reclamo
 GO
 CREATE PROCEDURE DB_OWNERS.migrar_cupones_reclamo AS
 BEGIN
-	DELETE FROM DB_OWNERS.CUPON_RECLAMO -- Usar para evitar duplicar entradas
-		DBCC CHECKIDENT ('DB_OWNERS.CUPON_RECLAMO', RESEED, 0) -- Usar para evitar duplicar entradas
 	INSERT INTO DB_OWNERS.CUPON_RECLAMO
 	SELECT DISTINCT 
 		R.id_reclamo,
@@ -1109,8 +1057,6 @@ DROP PROCEDURE DB_OWNERS.migrar_cupones_usados
 GO
 CREATE PROCEDURE DB_OWNERS.migrar_cupones_usados AS
 BEGIN
-	DELETE FROM DB_OWNERS.CUPON_USADO -- Usar para evitar duplicar entradas
-		DBCC CHECKIDENT ('DB_OWNERS.CUPON_USADO', RESEED, 0) -- Usar para evitar duplicar entradas
 	INSERT INTO DB_OWNERS.CUPON_USADO(
 		id_cupon,
 		id_pedido
@@ -1140,14 +1086,11 @@ DROP PROCEDURE DB_OWNERS.migrar_items
 GO
 CREATE PROCEDURE DB_OWNERS.migrar_items
 AS BEGIN
-	DELETE FROM DB_OWNERS.ITEM -- Usar para evitar duplicar entradas
-	INSERT INTO DB_OWNERS.ITEM(cod_producto, id_local, id_pedido, cantidad, precio_total)
+	INSERT INTO DB_OWNERS.ITEM(id_producto_por_local, id_pedido, cantidad)
 	SELECT DISTINCT 
-		pl.cod_producto,
-		pl.id_local,
+		pl.id_producto_por_local,
 		p.id_pedido,
-		m.PRODUCTO_CANTIDAD,
-		m.PEDIDO_TOTAL_PRODUCTOS
+		m.PRODUCTO_CANTIDAD
 	FROM gd_esquema.Maestra m
 	JOIN DB_OWNERS.LOCAL_ l ON l.nombre = m.LOCAL_NOMBRE
 	JOIN DB_OWNERS.PRODUCTO pr ON pr.cod_producto = m.PRODUCTO_LOCAL_CODIGO
@@ -1276,6 +1219,5 @@ ADD FOREIGN KEY (id_cupon) REFERENCES DB_OWNERS.CUPON(id_nro_cupon),
 	FOREIGN KEY (id_pedido) REFERENCES DB_OWNERS.PEDIDO(id_pedido);
 
 ALTER TABLE DB_OWNERS.ITEM
-ADD FOREIGN KEY (cod_producto) REFERENCES DB_OWNERS.PRODUCTO(cod_producto),
-	FOREIGN KEY (id_local) REFERENCES DB_OWNERS.LOCAL_(id_local),
+ADD FOREIGN KEY (id_producto_por_local) REFERENCES DB_OWNERS.PRODUCTO_POR_LOCAL(id_producto_por_local),
 	FOREIGN KEY (id_pedido) REFERENCES DB_OWNERS.PEDIDO(id_pedido);
