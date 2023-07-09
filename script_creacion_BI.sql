@@ -106,7 +106,7 @@ CREATE TABLE DB_OWNERS.BI_DIA
 )
 GO
 INSERT INTO DB_OWNERS.BI_DIA
-VALUES('lunes'),('martes'),('miércoles'),('jueves'),('viernes'),('sábado'),('domingo')
+SELECT DISTINCT nombre_dia FROM DB_OWNERS.DIA_SEMANA
 --SELECT * FROM DB_OWNERS.BI_DIA
 
 
