@@ -444,8 +444,8 @@ BEGIN
 	C.id_categoria
 	FROM gd_esquema.Maestra m 
 	JOIN DB_OWNERS.TIPO_LOCAL TL ON TL.descripcion = m.LOCAL_TIPO
-	left JOIN DB_OWNERS.CATEGORIA C ON  (TL.id_tipo_local = (select TOP 1 id_tipo_local from DB_OWNERS.TIPO_LOCAL ORDER BY id_tipo_local ASC)AND C.id_categoria = SUBSTRING(m.LOCAL_DESCRIPCION,21,3)%3 ) or 
-									(TL.id_tipo_local = (select TOP 1 id_tipo_local from DB_OWNERS.TIPO_LOCAL ORDER BY id_tipo_local DESC) AND C.id_categoria = SUBSTRING(m.LOCAL_DESCRIPCION,21,3)%3 +3)
+	left JOIN DB_OWNERS.CATEGORIA C ON  (TL.id_tipo_local = (select TOP 1 id_tipo_local from DB_OWNERS.TIPO_LOCAL ORDER BY id_tipo_local ASC)AND C.id_categoria = SUBSTRING(m.LOCAL_DESCRIPCION,21,3)%3 +1 ) or 
+									(TL.id_tipo_local = (select TOP 1 id_tipo_local from DB_OWNERS.TIPO_LOCAL ORDER BY id_tipo_local DESC) AND C.id_categoria = SUBSTRING(m.LOCAL_DESCRIPCION,21,3)%3 +4)
 	WHERE m.LOCAL_NOMBRE IS NOT NULL 
 END
 GO
@@ -716,14 +716,13 @@ BEGIN
 	JOIN DB_OWNERS.LOCALIDAD L ON L.id_localidad = D.id_localidad and L.nombre = m.LOCAL_LOCALIDAD
 	JOIN DB_OWNERS.PROVINCIA P ON P.id_provincia = L.id_provincia and P.nombre = m.LOCAL_PROVINCIA
 	JOIN DB_OWNERS.TIPO_LOCAL TL ON TL.descripcion = m.LOCAL_TIPO
-	JOIN DB_OWNERS.CATEGORIA C ON  (TL.id_tipo_local = (select TOP 1 id_tipo_local from DB_OWNERS.TIPO_LOCAL ORDER BY id_tipo_local ASC) AND C.id_categoria = SUBSTRING(m.LOCAL_DESCRIPCION,21,3)%3 ) or 
-									(TL.id_tipo_local = (select TOP 1 id_tipo_local from DB_OWNERS.TIPO_LOCAL ORDER BY id_tipo_local DESC) AND C.id_categoria = SUBSTRING(m.LOCAL_DESCRIPCION,21,3)%3 +3)
+	JOIN DB_OWNERS.CATEGORIA C ON  (TL.id_tipo_local = (select TOP 1 id_tipo_local from DB_OWNERS.TIPO_LOCAL ORDER BY id_tipo_local ASC) AND C.id_categoria = SUBSTRING(m.LOCAL_DESCRIPCION,21,3)%3 +1) or 
+									(TL.id_tipo_local = (select TOP 1 id_tipo_local from DB_OWNERS.TIPO_LOCAL ORDER BY id_tipo_local DESC) AND C.id_categoria = SUBSTRING(m.LOCAL_DESCRIPCION,21,3)%3 +4)
 	JOIN DB_OWNERS.CATEGORIA_LOCAL CL ON CL.id_tipo_local = tl.id_tipo_local and CL.id_categoria = C.id_categoria
 	WHERE m.LOCAL_NOMBRE IS NOT NULL 
 
 END
 GO
-
 
 IF EXISTS (SELECT * FROM sys.objects WHERE name = 'migrar_horarios_atencion')
 DROP PROCEDURE DB_OWNERS.migrar_horarios_atencion
@@ -948,7 +947,7 @@ AS BEGIN
 		es.id_estado,
 		m.ENVIO_MENSAJERIA_VALOR_ASEGURADO,
 		m.ENVIO_MENSAJERIA_PRECIO_SEGURO,
-		COALESCE(MP.id_medio_de_pago,'0') AS id_medio_pago,
+		COALESCE(MP.id_medio_de_pago,'1') AS id_medio_pago,
 		m.ENVIO_MENSAJERIA_DIR_ORIG,
 		m.ENVIO_MENSAJERIA_DIR_DEST,
 		m.ENVIO_MENSAJERIA_KM
@@ -989,7 +988,7 @@ AS BEGIN
 		m.PEDIDO_CALIFICACION,
 		m.PEDIDO_FECHA_ENTREGA,
 		m.PEDIDO_TARIFA_SERVICIO,
-		COALESCE(MP.id_medio_de_pago,'0') AS id_medio_pago,
+		COALESCE(MP.id_medio_de_pago,'1') AS id_medio_pago,
 		m.PEDIDO_TOTAL_SERVICIO,
 		m.PEDIDO_TOTAL_CUPONES,
 		m.PEDIDO_TOTAL_PRODUCTOS
